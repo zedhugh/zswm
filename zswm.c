@@ -71,12 +71,16 @@ void print_monitor_info(Monitor *m) {
 xcb_connection_t *connection;
 
 int main() {
-    xcb_generic_event_t *event;
     connection = xcb_connect(NULL, NULL);
+    int err_code = xcb_connection_has_error(connection);
+    if (err_code != 0) {
+        die("connection:");
+    }
     check_other_wm(connection);
     Monitor *monitor = monitor_scan(connection);
     print_monitor_info(monitor);
 
+    xcb_generic_event_t *event;
     while ((event = xcb_wait_for_event(connection))) {
         event_handle(event);
     }
