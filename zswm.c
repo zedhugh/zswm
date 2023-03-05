@@ -1,37 +1,17 @@
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xlib-xcb.h>
-#include <X11/extensions/Xinerama.h>
-#include <X11/extensions/Xrandr.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/xcb_event.h>
 #include <xcb/xinerama.h>
 #include <xcb/xproto.h>
-#include <inttypes.h>
+
+#include "event.h"
 #include "utils.h"
-
-double xcb(xcb_connection_t *connection) {
-    double start, end;
-
-    start = get_time();
-
-    xcb_xinerama_query_screens_cookie_t cookie = xcb_xinerama_query_screens(connection);
-    xcb_xinerama_query_screens_reply_t *screens_reply = xcb_xinerama_query_screens_reply(connection, cookie, NULL);
-    int count = xcb_xinerama_query_screens_screen_info_length(screens_reply);
-    xcb_xinerama_screen_info_t *screen_info = xcb_xinerama_query_screens_screen_info(screens_reply);
-
-    for (int i = 0; i < count; i++) {
-        xcb_xinerama_screen_info_t temp = screen_info[i];
-        printf("x: %d, y: %d, width: %d, height: %d\n", temp.x_org, temp.y_org, temp.width, temp.height);
-    }
-
-    end = get_time();
-    return end - start;
-}
+#include "zswm.h"
 
 void check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
@@ -48,16 +28,58 @@ void check_other_wm(xcb_connection_t *connection) {
     }
 }
 
+void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
+    m->x = s->x_org;
+    m->y = s->y_org;
+    m->width = s->width;
+    m->height = s->height;
+    m->next = NULL;
+}
+
+Monitor *monitor_scan(xcb_connection_t *connection) {
+    Monitor *monitor, *temp_monitor;
+
+    xcb_xinerama_query_screens_cookie_t cookie = xcb_xinerama_query_screens(connection);
+    xcb_xinerama_query_screens_reply_t *screens_reply = xcb_xinerama_query_screens_reply(connection, cookie, NULL);
+    xcb_xinerama_screen_info_t *screen_info = xcb_xinerama_query_screens_screen_info(screens_reply);
+
+    if (screen_info == NULL) {
+        die("no monitor finded");
+    }
+
+    monitor = temp_monitor = ecalloc(1, sizeof(Monitor));
+    copy_screen_info(monitor, screen_info);
+
+    int count = xcb_xinerama_query_screens_screen_info_length(screens_reply);
+
+    for (int i = 1; i < count; i++) {
+        temp_monitor->next = ecalloc(1, sizeof(Monitor));
+        copy_screen_info(temp_monitor->next, &screen_info[i]);
+        temp_monitor = temp_monitor->next;
+    }
+
+    return monitor;
+}
+
+void print_monitor_info(Monitor *m) {
+    for (Monitor *curr = m; curr; curr = curr->next) {
+        printf("x:\t%d,\ty:\t%d\n", curr->x, curr->y);
+        printf("width:\t%d,\theight:\t%d\n", curr->width, curr->height);
+    }
+}
+
+xcb_connection_t *connection;
+
 int main() {
-    double start = get_time();
-
-    xcb_connection_t *connection = xcb_connect(NULL, NULL);
+    xcb_generic_event_t *event;
+    connection = xcb_connect(NULL, NULL);
     check_other_wm(connection);
-    double cost = xcb(connection);
+    Monitor *monitor = monitor_scan(connection);
+    print_monitor_info(monitor);
 
-    double end = get_time();
-    printf("get monitor cost: %f, all cost: %f\n", cost, end - start);
-    while (1);
+    while ((event = xcb_wait_for_event(connection))) {
+        event_handle(event);
+    }
 
     xcb_disconnect(connection);
 
