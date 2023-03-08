@@ -1,7 +1,9 @@
 #include <bits/types/struct_timeval.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include "utils.h"
+#include "zswm.h"
 
 double get_time() {
     struct timeval tv;
@@ -33,4 +35,12 @@ void *ecalloc(size_t nmemb, size_t size) {
     }
 
     return p;
+}
+
+void spawn(const Arg * arg) {
+    if (fork() == 0) {
+        setsid();
+        execvp(((char **)arg->v)[0], arg->v);
+        die("zswm execvp '%s' failed:", ((char **)arg->v)[0]);
+    }
 }

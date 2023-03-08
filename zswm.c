@@ -1,3 +1,4 @@
+#include <X11/keysym.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -6,12 +7,20 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
+#include <xcb/xcb_keysyms.h>
 #include <xcb/xinerama.h>
 #include <xcb/xproto.h>
 
+#include "config.h"
 #include "event.h"
 #include "utils.h"
 #include "zswm.h"
+
+
+xcb_connection_t *connection;
+xcb_window_t root;
+xcb_key_symbols_t *keysyms;
+
 
 void check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
@@ -26,6 +35,7 @@ void check_other_wm(xcb_connection_t *connection) {
         xcb_disconnect(connection);
         die("another window manager is already running");
     }
+    root = screen->root;
 }
 
 void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
@@ -68,7 +78,19 @@ void print_monitor_info(Monitor *m) {
     }
 }
 
-xcb_connection_t *connection;
+void grabkeys(void) {
+    xcb_ungrab_key(connection, XCB_GRAB_ANY, root, XCB_MOD_MASK_ANY);
+    xcb_flush(connection);
+
+    keysyms = xcb_key_symbols_alloc(connection);
+
+    for (int i = 0; i < LENGTH(keys); i++) {
+        xcb_keycode_t *keycodesPtr = xcb_key_symbols_get_keycode(keysyms, keys[i].keysym);
+        xcb_grab_key(connection, XCB_GRAB_ANY, root, keys[i].modifier, *keycodesPtr, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    }
+    xcb_flush(connection);
+}
+
 
 int main() {
     connection = xcb_connect(NULL, NULL);
@@ -80,6 +102,7 @@ int main() {
     Monitor *monitor = monitor_scan(connection);
     print_monitor_info(monitor);
 
+    grabkeys();
     xcb_generic_event_t *event;
     while ((event = xcb_wait_for_event(connection))) {
         event_handle(event);

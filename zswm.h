@@ -1,8 +1,10 @@
+#include <stdint.h>
+#include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
+#include <xcb/xproto.h>
+
 #ifndef __ZS_WM__
 #define __ZS_WM__
-
-#include <inttypes.h>
-#include <xcb/xcb.h>
 
 typedef struct Monitor Monitor;
 
@@ -14,6 +16,22 @@ struct Monitor {
     Monitor *next;
 };
 
+typedef union {
+    int i;
+    unsigned int ui;
+    float f;
+    const void *v;
+} Arg;
+
+typedef struct {
+    uint16_t modifier;
+    xcb_keysym_t keysym;
+    void (*func)(const Arg *);
+    const Arg arg;
+} Key;
+
 extern xcb_connection_t *connection;
+extern xcb_window_t root;
+extern xcb_key_symbols_t *keysyms;
 
 #endif

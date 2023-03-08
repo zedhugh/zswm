@@ -3,9 +3,12 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
+#include <xcb/xcb_keysyms.h>
 #include <xcb/xproto.h>
 
+#include "config.h"
 #include "event.h"
+#include "utils.h"
 #include "zswm.h"
 
 static void create_notify(xcb_create_notify_event_t *ev) {
@@ -31,6 +34,18 @@ static void configure_request(xcb_configure_request_event_t *ev) {
     xcb_flush(connection);
 }
 
+static void keypress(xcb_key_press_event_t *ev) {
+    xcb_keysym_t keysym = xcb_key_press_lookup_keysym(keysyms, ev, 0);
+
+    for (int i = 0; i < LENGTH(keys); i++) {
+        if (keysym == keys[i].keysym && ev->state == keys[i].modifier && keys[i].func) {
+            keys[i].func(&keys[i].arg);
+            printf("hotkey triggered\n");
+            return;
+        }
+    }
+}
+
 static void client_message(xcb_client_message_event_t *ev) {
 }
 
@@ -47,6 +62,7 @@ void event_handle(xcb_generic_event_t *event) {
         EVENT(XCB_CONFIGURE_REQUEST, configure_request);
         EVENT(XCB_DESTROY_NOTIFY, destory_notify);
         EVENT(XCB_CLIENT_MESSAGE, client_message);
+        EVENT(XCB_KEY_PRESS, keypress);
 #undef EVENT
     default: {
         const char *label = xcb_event_get_label(event_type);

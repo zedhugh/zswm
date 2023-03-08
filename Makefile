@@ -1,4 +1,4 @@
-CFLAGS = -lxcb -lxcb-util -lxcb-xinerama -Wall
+CFLAGS = -lxcb -lxcb-util -lxcb-xinerama -lxcb-keysyms -Wall
 SRC = zswm.c utils.c event.c
 
 zswm: ${SRC}
