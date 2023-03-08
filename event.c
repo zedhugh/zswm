@@ -14,7 +14,7 @@ static void create_notify(xcb_create_notify_event_t *ev) {
 static void map_request(xcb_map_request_event_t *ev) {
     xcb_map_window(connection, ev->window);
     xcb_map_subwindows(connection, ev->window);
-    xcb_aux_sync(connection);
+    xcb_flush(connection);
 }
 
 static void configure_request(xcb_configure_request_event_t *ev) {
@@ -28,7 +28,7 @@ static void configure_request(xcb_configure_request_event_t *ev) {
     params.border_width = ev->border_width;
     xcb_aux_configure_window(connection, ev->window, ev->value_mask, &params);
     printf("config: %d, x: %d, y: %d, width: %d, height: %d\n", ev->window, ev->x, ev->y, ev->width, ev->height);
-    xcb_aux_sync(connection);
+    xcb_flush(connection);
 }
 
 static void client_message(xcb_client_message_event_t *ev) {
