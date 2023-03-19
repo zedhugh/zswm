@@ -1,7 +1,11 @@
 #include <bits/types/struct_timeval.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <xcb/xcb.h>
+#include <xcb/xcb_aux.h>
+#include <xcb/xproto.h>
 #include "utils.h"
 #include "zswm.h"
 
@@ -11,7 +15,7 @@ double get_time() {
     return  tv.tv_sec + tv.tv_usec / 1000000.0;
 }
 
-void die(const char *fmt, ...)  {
+void die(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
@@ -25,6 +29,17 @@ void die(const char *fmt, ...)  {
     }
 
     exit(1);
+}
+
+void logger(const char *fmt, ...) {
+#ifdef LOG_FILE
+    va_list ap;
+    va_start(ap, fmt);
+    FILE *log_file = fopen(LOG_FILE, "a+t");
+    vfprintf(log_file, fmt, ap);
+    va_end(ap);
+    fclose(log_file);
+#endif
 }
 
 void *ecalloc(size_t nmemb, size_t size) {
@@ -43,4 +58,17 @@ void spawn(const Arg * arg) {
         execvp(((char **)arg->v)[0], arg->v);
         die("zswm execvp '%s' failed:", ((char **)arg->v)[0]);
     }
+}
+
+uint32_t alloc_color(const char *color) {
+    uint16_t red, green, blue;
+    uint32_t color_pixel;
+
+    xcb_aux_parse_color(color, &red, &green, &blue);
+    xcb_alloc_color_cookie_t cookie = xcb_alloc_color(connection, screen->default_colormap, red, green, blue);
+    xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(connection, cookie, NULL);
+    color_pixel = reply->pixel;
+
+    free(reply);
+    return color_pixel;
 }

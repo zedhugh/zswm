@@ -31,7 +31,9 @@ typedef struct {
 } Key;
 
 extern xcb_connection_t *connection;
+extern xcb_screen_t *screen;
 extern xcb_window_t root;
 extern xcb_key_symbols_t *keysyms;
+extern int running;
 
 #endif

@@ -18,16 +18,21 @@
 
 
 xcb_connection_t *connection;
+xcb_screen_t *screen;
 xcb_window_t root;
 xcb_key_symbols_t *keysyms;
+int running;
 
 
 void check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    xcb_screen_t *screen = iter.data;
+    screen = iter.data;
 
-    uint32_t mask = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    uint32_t mask = XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_ENTER_WINDOW |
+        /* XCB_EVENT_MASK_POINTER_MOTION | */
+        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+        XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
     xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(connection, screen->root, XCB_CW_EVENT_MASK, &mask);
 
     xcb_generic_error_t *error = xcb_request_check(connection, cookie);
@@ -73,8 +78,8 @@ Monitor *monitor_scan(xcb_connection_t *connection) {
 
 void print_monitor_info(Monitor *m) {
     for (Monitor *curr = m; curr; curr = curr->next) {
-        printf("x:\t%d,\ty:\t%d\n", curr->x, curr->y);
-        printf("width:\t%d,\theight:\t%d\n", curr->width, curr->height);
+        logger("x:\t%d,\ty:\t%d\n", curr->x, curr->y);
+        logger("width:\t%d,\theight:\t%d\n", curr->width, curr->height);
     }
 }
 
@@ -99,12 +104,15 @@ int main() {
         die("connection:");
     }
     check_other_wm(connection);
+
+    running = 1;
+
     Monitor *monitor = monitor_scan(connection);
     print_monitor_info(monitor);
 
     grabkeys();
     xcb_generic_event_t *event;
-    while ((event = xcb_wait_for_event(connection))) {
+    while (running && (event = xcb_wait_for_event(connection))) {
         event_handle(event);
     }
 
