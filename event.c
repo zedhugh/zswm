@@ -60,6 +60,10 @@ static void keypress(xcb_key_press_event_t *ev) {
     }
 }
 
+static void button_press(xcb_button_press_event_t *ev) {
+    logger("root: %d, event: %d, child: %d\n", ev->root, ev->event, ev->child);
+}
+
 static void client_message(xcb_client_message_event_t *ev) {
     logger("format: %d, type: %d\n", ev->format, ev->type);
 }
@@ -119,6 +123,7 @@ void event_handle(xcb_generic_event_t *event) {
         EVENT(XCB_DESTROY_NOTIFY, destory_notify);
         EVENT(XCB_CLIENT_MESSAGE, client_message);
         EVENT(XCB_KEY_PRESS, keypress);
+        EVENT(XCB_BUTTON_PRESS, button_press);
         EVENT(XCB_MOTION_NOTIFY, motion_notify);
         EVENT(XCB_ENTER_NOTIFY, enter_notify);
         EVENT(XCB_LEAVE_NOTIFY, leave_notify);

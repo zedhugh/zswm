@@ -44,10 +44,10 @@ void check_other_wm(xcb_connection_t *connection) {
 }
 
 void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
-    m->x = s->x_org;
-    m->y = s->y_org;
-    m->width = s->width;
-    m->height = s->height;
+    m->mx = s->x_org;
+    m->my = s->y_org;
+    m->mw = s->width;
+    m->mh = s->height;
     m->next = NULL;
 }
 
@@ -78,8 +78,8 @@ Monitor *monitor_scan(xcb_connection_t *connection) {
 
 void print_monitor_info(Monitor *m) {
     for (Monitor *curr = m; curr; curr = curr->next) {
-        logger("x:\t%d,\ty:\t%d\n", curr->x, curr->y);
-        logger("width:\t%d,\theight:\t%d\n", curr->width, curr->height);
+        logger("x:\t%d,\ty:\t%d\n", curr->mx, curr->my);
+        logger("width:\t%d,\theight:\t%d\n", curr->mw, curr->mh);
     }
 }
 
@@ -96,6 +96,45 @@ void grabkeys(void) {
     xcb_flush(connection);
 }
 
+void updatebar(Monitor *monitor, uint16_t barheight) {
+    for (Monitor *m = monitor; m; m = m->next) {
+        if (m->barwin) continue;
+
+        xcb_window_t win = xcb_generate_id(connection);
+        xcb_void_cookie_t cookie;
+        uint32_t mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+        xcb_create_window_value_list_t value = {
+            .override_redirect = 1,
+            .background_pixmap = XCB_BACK_PIXMAP_PARENT_RELATIVE,
+            .background_pixel = alloc_color("#00FF00"),
+            .event_mask = XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_EXPOSURE,
+        };
+        cookie = xcb_create_window_aux_checked(connection,
+                                               screen->root_depth,
+                                               win,
+                                               screen->root,
+                                               m->mx, m->my,
+                                               m->mw, barheight,
+                                               0,
+                                               XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                                               screen->root_visual,
+                                               mask, &value);
+        if (xcb_request_check(connection, cookie)) {
+            die("create bar window:");
+        }
+
+
+
+        cookie = xcb_map_window(connection, win);
+        if (xcb_request_check(connection, cookie)) {
+            die("map bar window:");
+        }
+
+        xcb_aux_sync(connection);
+        m->barwin = win;
+    }
+}
+
 
 int main() {
     connection = xcb_connect(NULL, NULL);
@@ -109,6 +148,7 @@ int main() {
 
     Monitor *monitor = monitor_scan(connection);
     print_monitor_info(monitor);
+    updatebar(monitor, 20);
 
     grabkeys();
     xcb_generic_event_t *event;

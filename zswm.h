@@ -9,10 +9,16 @@
 typedef struct Monitor Monitor;
 
 struct Monitor {
-    int16_t x;
-    int16_t y;
-    uint16_t width;
-    uint16_t height;
+    /* monitor rectangle */
+    int16_t mx, my;
+    uint16_t mw, mh;
+
+    /* window rectangle */
+    int16_t wx, wy;
+    uint16_t ww, wh;
+
+    xcb_window_t barwin;
+
     Monitor *next;
 };
 
