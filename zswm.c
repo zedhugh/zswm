@@ -151,8 +151,14 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
             die("map bar window:");
         }
 
-        char *class_name = "zswm";
-        xcb_icccm_set_wm_class(connection, win, strlen(class_name), class_name);
+        /**
+         * set wm class use xcb api, reference https://github.com/awesomeWM/awesome/blob/master/xwindow.h
+         * it's equal to X11 api below
+         * XClassHint ch = { "zswm", "zswm" };
+         * XSetClassHint(dpy, win, &ch);
+         */
+        char class_name[] = "zswm\0zswm"; /* class and instance splited by \0 */
+        xcb_icccm_set_wm_class(connection, win, sizeof(class_name), class_name);
 
         xcb_aux_sync(connection);
         m->barwin = win;
