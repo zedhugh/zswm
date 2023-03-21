@@ -36,10 +36,13 @@ typedef struct {
     const Arg arg;
 } Key;
 
+enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+
 extern xcb_connection_t *connection;
 extern xcb_screen_t *screen;
 extern xcb_window_t root;
 extern xcb_key_symbols_t *keysyms;
 extern int running;
+extern xcb_cursor_t cursor[CurLast];
 
 #endif

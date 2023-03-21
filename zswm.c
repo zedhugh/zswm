@@ -1,8 +1,10 @@
+#include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
@@ -22,6 +24,7 @@ xcb_screen_t *screen;
 xcb_window_t root;
 xcb_key_symbols_t *keysyms;
 int running;
+xcb_cursor_t cursor[CurLast];
 
 
 void check_other_wm(xcb_connection_t *connection) {
@@ -96,18 +99,35 @@ void grabkeys(void) {
     xcb_flush(connection);
 }
 
-void updatebar(Monitor *monitor, uint16_t barheight) {
+static void init_cursors() {
+    xcb_font_t font = xcb_generate_id(connection);
+    const char *cursorfont = "cursor";
+    xcb_open_font_checked(connection, font, strlen(cursorfont), cursorfont);
+
+    for (int i = CurNormal; i < CurLast; i++) {
+        xcb_cursor_t temp_cursor = xcb_generate_id(connection);
+        xcb_create_glyph_cursor_checked(connection, temp_cursor,
+                                        font, font,
+                                        XC_left_ptr, XC_left_ptr + 1,
+                                        0, 0, 0, 0, 0, 0);
+        cursor[i] = temp_cursor;
+    }
+}
+
+static void update_bar(Monitor *monitor, uint16_t barheight) {
     for (Monitor *m = monitor; m; m = m->next) {
         if (m->barwin) continue;
 
         xcb_window_t win = xcb_generate_id(connection);
         xcb_void_cookie_t cookie;
-        uint32_t mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP | XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+        uint32_t mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP |
+            XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
         xcb_create_window_value_list_t value = {
             .override_redirect = 1,
             .background_pixmap = XCB_BACK_PIXMAP_PARENT_RELATIVE,
             .background_pixel = alloc_color("#00FF00"),
             .event_mask = XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_EXPOSURE,
+            .cursor = cursor[CurNormal],
         };
         cookie = xcb_create_window_aux_checked(connection,
                                                screen->root_depth,
@@ -148,7 +168,8 @@ int main() {
 
     Monitor *monitor = monitor_scan(connection);
     print_monitor_info(monitor);
-    updatebar(monitor, 20);
+    init_cursors();
+    update_bar(monitor, 20);
 
     grabkeys();
     xcb_generic_event_t *event;
