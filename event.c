@@ -23,6 +23,7 @@ static void map_request(xcb_map_request_event_t *ev) {
     if (ev->parent == root) {
         uint32_t value_list[] = { XCB_EVENT_MASK_ENTER_WINDOW, XCB_EVENT_MASK_LEAVE_WINDOW };
         xcb_change_window_attributes(connection, ev->window, XCB_CW_EVENT_MASK, value_list);
+        xcb_configure_window(connection, ev->window, XCB_CONFIG_WINDOW_Y, &(uint32_t[]){ 20 });
     }
 
     xcb_flush(connection);
@@ -82,10 +83,12 @@ static void enter_notify(xcb_enter_notify_event_t *ev) {
 
     if (ev->event == root) return;
 
-    uint16_t value_mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    uint16_t value_mask = XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
+        XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
     xcb_configure_window_value_list_t value_list = {
+        .y = 20,
         .width = screen->width_in_pixels - 2,
-        .height = screen->height_in_pixels - 2,
+        .height = screen->height_in_pixels - 2 - 20,
         .border_width = 1,
     };
     xcb_configure_window_aux(connection, ev->event, value_mask, &value_list);
