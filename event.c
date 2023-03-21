@@ -34,7 +34,7 @@ static void map_notify(xcb_map_notify_event_t *ev) {
 
 static void configure_request(xcb_configure_request_event_t *ev) {
     logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, root);
-    logger("x: %d, y: %d, width: %d, height: %d\n", ev->x, ev->y, ev->width, ev->height);;
+    logger("x: %d, y: %d, width: %d, height: %d\n", ev->x, ev->y, ev->width, ev->height);
     xcb_params_configure_window_t params = {
         .x = ev->x,
         .y = ev->y,

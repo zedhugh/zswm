@@ -9,6 +9,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
+#include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/xinerama.h>
 #include <xcb/xproto.h>
@@ -149,6 +150,9 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
         if (xcb_request_check(connection, cookie)) {
             die("map bar window:");
         }
+
+        char *class_name = "zswm";
+        xcb_icccm_set_wm_class(connection, win, strlen(class_name), class_name);
 
         xcb_aux_sync(connection);
         m->barwin = win;

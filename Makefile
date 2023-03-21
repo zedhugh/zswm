@@ -4,7 +4,7 @@ PWD_DIR := $(CURDIR)/
 
 LOG_FILE = /home/zedhugh/.zswm-log.txt
 LOG_FLAG = -DLOG_FILE=\"${LOG_FILE}\"
-CFLAGS = -lxcb -lxcb-util -lxcb-xinerama -lxcb-keysyms -Wall ${LOG_FLAG}
+CFLAGS = -lxcb-icccm -lxcb-keysyms -lxcb -lxcb-util -lxcb-xinerama -Wall ${LOG_FLAG}
 SRC := zswm.c utils.c event.c
 
 TARGET_NAME := zswm
