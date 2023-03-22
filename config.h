@@ -1,11 +1,17 @@
 #include <X11/keysym.h>
-#include <xcb/xproto.h>
-
+#include "global.h"
 #include "utils.h"
 #include "zswm.h"
 
 #ifndef __ZS_WM_CONFIG__
 #define __ZS_WM_CONFIG__
+
+typedef struct {
+    uint16_t modifier;
+    xcb_keysym_t keysym;
+    void (*func)(const Arg *);
+    const Arg arg;
+} Key;
 
 static const char col_gray1[] = "#222222";
 static const char col_gray2[] = "#444444";
@@ -18,7 +24,7 @@ static const char dmenumon[2] = "0";
 static const char *dmenucmd[] = { "dmenu_run", "-m", "0", "-c", "-l", "25", "-g", "3", "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
 
 static void quit(const Arg *) {
-    running = 0;
+    global.running = false;
 }
 
 static Key keys[] = {

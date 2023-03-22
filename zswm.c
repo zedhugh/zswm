@@ -19,32 +19,27 @@
 #include "utils.h"
 #include "zswm.h"
 
-
-xcb_connection_t *connection;
-xcb_screen_t *screen;
-xcb_window_t root;
-xcb_key_symbols_t *keysyms;
-int running;
-xcb_cursor_t cursor[CurLast];
-
+zswm_global_t global;
 
 void check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    screen = iter.data;
+    global.screen = iter.data;
 
     uint32_t mask = XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_ENTER_WINDOW |
         /* XCB_EVENT_MASK_POINTER_MOTION | */
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
         XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
-    xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(connection, screen->root, XCB_CW_EVENT_MASK, &mask);
+    xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(connection,
+                                                                    global.screen->root,
+                                                                    XCB_CW_EVENT_MASK,
+                                                                    &mask);
 
     xcb_generic_error_t *error = xcb_request_check(connection, cookie);
     if (error) {
         xcb_disconnect(connection);
         die("another window manager is already running");
     }
-    root = screen->root;
 }
 
 void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
@@ -88,38 +83,48 @@ void print_monitor_info(Monitor *m) {
 }
 
 void grabkeys(void) {
-    xcb_ungrab_key(connection, XCB_GRAB_ANY, root, XCB_MOD_MASK_ANY);
-    xcb_flush(connection);
+    xcb_connection_t *conn = global.conn;
+    xcb_window_t root = global.screen->root;
 
-    keysyms = xcb_key_symbols_alloc(connection);
+    xcb_ungrab_key(conn, XCB_GRAB_ANY, root, XCB_MOD_MASK_ANY);
+    xcb_flush(conn);
+
+    global.keysymbol = xcb_key_symbols_alloc(conn);
 
     for (int i = 0; i < LENGTH(keys); i++) {
-        xcb_keycode_t *keycodesPtr = xcb_key_symbols_get_keycode(keysyms, keys[i].keysym);
-        xcb_grab_key(connection, XCB_GRAB_ANY, root, keys[i].modifier, *keycodesPtr, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_keycode_t *keycodesPtr = xcb_key_symbols_get_keycode(global.keysymbol, keys[i].keysym);
+        xcb_grab_key(conn, XCB_GRAB_ANY, root, keys[i].modifier, *keycodesPtr, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     }
-    xcb_flush(connection);
+    xcb_flush(conn);
 }
 
 static void init_cursors() {
-    xcb_font_t font = xcb_generate_id(connection);
+    xcb_connection_t *conn = global.conn;
+    xcb_cursor_t *cursors = global.cursors;
+
+    xcb_font_t font = xcb_generate_id(conn);
     const char *cursorfont = "cursor";
-    xcb_open_font_checked(connection, font, strlen(cursorfont), cursorfont);
+    xcb_open_font_checked(conn, font, strlen(cursorfont), cursorfont);
 
     for (int i = CurNormal; i < CurLast; i++) {
-        xcb_cursor_t temp_cursor = xcb_generate_id(connection);
-        xcb_create_glyph_cursor_checked(connection, temp_cursor,
+        xcb_cursor_t temp_cursor = xcb_generate_id(conn);
+        xcb_create_glyph_cursor_checked(conn, temp_cursor,
                                         font, font,
                                         XC_left_ptr, XC_left_ptr + 1,
                                         0, 0, 0, 0, 0, 0);
-        cursor[i] = temp_cursor;
+        cursors[i] = temp_cursor;
     }
 }
 
 static void update_bar(Monitor *monitor, uint16_t barheight) {
+    xcb_connection_t *conn = global.conn;
+    xcb_screen_t *screen = global.screen;
+    xcb_cursor_t *cursors = global.cursors;
+
     for (Monitor *m = monitor; m; m = m->next) {
         if (m->barwin) continue;
 
-        xcb_window_t win = xcb_generate_id(connection);
+        xcb_window_t win = xcb_generate_id(conn);
         xcb_void_cookie_t cookie;
         uint32_t mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP |
             XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
@@ -128,9 +133,9 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
             .background_pixmap = XCB_BACK_PIXMAP_PARENT_RELATIVE,
             .background_pixel = alloc_color("#00FF00"),
             .event_mask = XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_EXPOSURE,
-            .cursor = cursor[CurNormal],
+            .cursor = cursors[CurNormal],
         };
-        cookie = xcb_create_window_aux_checked(connection,
+        cookie = xcb_create_window_aux_checked(conn,
                                                screen->root_depth,
                                                win,
                                                screen->root,
@@ -140,14 +145,14 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
                                                XCB_WINDOW_CLASS_INPUT_OUTPUT,
                                                screen->root_visual,
                                                mask, &value);
-        if (xcb_request_check(connection, cookie)) {
+        if (xcb_request_check(conn, cookie)) {
             die("create bar window:");
         }
 
 
 
-        cookie = xcb_map_window(connection, win);
-        if (xcb_request_check(connection, cookie)) {
+        cookie = xcb_map_window(conn, win);
+        if (xcb_request_check(conn, cookie)) {
             die("map bar window:");
         }
 
@@ -158,36 +163,38 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
          * XSetClassHint(dpy, win, &ch);
          */
         char class_name[] = "zswm\0zswm"; /* class and instance splited by \0 */
-        xcb_icccm_set_wm_class(connection, win, sizeof(class_name), class_name);
+        xcb_icccm_set_wm_class(conn, win, sizeof(class_name), class_name);
 
-        xcb_aux_sync(connection);
+        xcb_aux_sync(conn);
         m->barwin = win;
     }
 }
 
 
 int main() {
-    connection = xcb_connect(NULL, NULL);
-    int err_code = xcb_connection_has_error(connection);
+    xcb_connection_t *conn = xcb_connect(NULL, NULL);
+    int err_code = xcb_connection_has_error(conn);
     if (err_code != 0) {
         die("connection:");
     }
-    check_other_wm(connection);
+    check_other_wm(conn);
 
-    running = 1;
+    global.conn = conn;
+    global.running = true;
+    global.barheight = 20;
 
-    Monitor *monitor = monitor_scan(connection);
-    print_monitor_info(monitor);
+    global.mon = monitor_scan(conn);
+    print_monitor_info(global.mon);
     init_cursors();
-    update_bar(monitor, 20);
+    update_bar(global.mon, global.barheight);
 
     grabkeys();
     xcb_generic_event_t *event;
-    while (running && (event = xcb_wait_for_event(connection))) {
+    while (global.running && (event = xcb_wait_for_event(conn))) {
         event_handle(event);
     }
 
-    xcb_disconnect(connection);
+    xcb_disconnect(conn);
 
     return EXIT_SUCCESS;
 }

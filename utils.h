@@ -1,12 +1,9 @@
-#ifndef __ZS_WM_UTILS__
-#define __ZS_WM_UTILS__
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "zswm.h"
 
+#ifndef __ZS_WM_UTILS__
+#define __ZS_WM_UTILS__
 
 #define MAX(A, B)               ((A) > (B) ? (A) : (B))
 #define MIN(A, B)               ((A) < (B) ? (A) : (B))

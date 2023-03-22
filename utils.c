@@ -1,11 +1,13 @@
-#include <bits/types/struct_timeval.h>
-#include <stdint.h>
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xproto.h>
+#include "global.h"
 #include "utils.h"
 #include "zswm.h"
 
@@ -65,8 +67,8 @@ uint32_t alloc_color(const char *color) {
     uint32_t color_pixel;
 
     xcb_aux_parse_color(color, &red, &green, &blue);
-    xcb_alloc_color_cookie_t cookie = xcb_alloc_color(connection, screen->default_colormap, red, green, blue);
-    xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(connection, cookie, NULL);
+    xcb_alloc_color_cookie_t cookie = xcb_alloc_color(global.conn, global.screen->default_colormap, red, green, blue);
+    xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(global.conn, cookie, NULL);
     color_pixel = reply->pixel;
 
     free(reply);

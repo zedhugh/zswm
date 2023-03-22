@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
-#include <xcb/xcb_keysyms.h>
-#include <xcb/xproto.h>
 
 #include "config.h"
 #include "event.h"
@@ -12,29 +11,29 @@
 #include "zswm.h"
 
 static void create_notify(xcb_create_notify_event_t *ev) {
-    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, root);
+    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, global.screen->root);
 }
 
 static void map_request(xcb_map_request_event_t *ev) {
-    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, root);
-    xcb_map_window(connection, ev->window);
-    xcb_map_subwindows(connection, ev->window);
+    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, global.screen->root);
+    xcb_map_window(global.conn, ev->window);
+    xcb_map_subwindows(global.conn, ev->window);
 
-    if (ev->parent == root) {
+    if (ev->parent == global.screen->root) {
         uint32_t value_list[] = { XCB_EVENT_MASK_ENTER_WINDOW, XCB_EVENT_MASK_LEAVE_WINDOW };
-        xcb_change_window_attributes(connection, ev->window, XCB_CW_EVENT_MASK, value_list);
-        xcb_configure_window(connection, ev->window, XCB_CONFIG_WINDOW_Y, &(uint32_t[]){ 20 });
+        xcb_change_window_attributes(global.conn, ev->window, XCB_CW_EVENT_MASK, value_list);
+        xcb_configure_window(global.conn, ev->window, XCB_CONFIG_WINDOW_Y, &global.barheight);
     }
 
-    xcb_flush(connection);
+    xcb_flush(global.conn);
 }
 
 static void map_notify(xcb_map_notify_event_t *ev) {
-    logger("window: %d, root: %d\n", ev->window, root);
+    logger("window: %d, root: %d\n", ev->window, global.screen->root);
 }
 
 static void configure_request(xcb_configure_request_event_t *ev) {
-    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, root);
+    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, global.screen->root);
     logger("x: %d, y: %d, width: %d, height: %d\n", ev->x, ev->y, ev->width, ev->height);
     xcb_params_configure_window_t params = {
         .x = ev->x,
@@ -45,12 +44,12 @@ static void configure_request(xcb_configure_request_event_t *ev) {
         .sibling = ev->sibling,
         .stack_mode = ev->stack_mode,
     };
-    xcb_aux_configure_window(connection, ev->window, ev->value_mask, &params);
-    xcb_flush(connection);
+    xcb_aux_configure_window(global.conn, ev->window, ev->value_mask, &params);
+    xcb_flush(global.conn);
 }
 
 static void keypress(xcb_key_press_event_t *ev) {
-    xcb_keysym_t keysym = xcb_key_press_lookup_keysym(keysyms, ev, 0);
+    xcb_keysym_t keysym = xcb_key_press_lookup_keysym(global.keysymbol, ev, 0);
     logger("keysym: %d\n", keysym);
 
     for (int i = 0; i < LENGTH(keys); i++) {
@@ -73,42 +72,42 @@ static void destory_notify(xcb_destroy_notify_event_t *ev) {
 }
 
 static void motion_notify(xcb_motion_notify_event_t *ev) {
-    if (ev->root != root) return;
+    if (ev->root != global.screen->root) return;
     /* logger("notion notify: x: %d,\t y: %d\n", ev->root_x, ev->root_y); */
 }
 
 static void enter_notify(xcb_enter_notify_event_t *ev) {
-    logger("x: %d,\t y: %d,\t root: %d\n", ev->root_x, ev->root_y, root);
+    logger("x: %d,\t y: %d,\t root: %d\n", ev->root_x, ev->root_y, global.screen->root);
     logger("root: %d,\t event: %d,\t child: %d\n", ev->root, ev->event, ev->root);
 
-    if (ev->event == root) return;
+    if (ev->event == global.screen->root) return;
 
     uint16_t value_mask = XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
         XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
     xcb_configure_window_value_list_t value_list = {
         .y = 20,
-        .width = screen->width_in_pixels - 2,
-        .height = screen->height_in_pixels - 2 - 20,
+        .width = global.screen->width_in_pixels - 2,
+        .height = global.screen->height_in_pixels - 2 - 20,
         .border_width = 1,
     };
-    xcb_configure_window_aux(connection, ev->event, value_mask, &value_list);
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(connection, ev->event);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(connection, cookie, NULL);
+    xcb_configure_window_aux(global.conn, ev->event, value_mask, &value_list);
+    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(global.conn, ev->event);
+    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(global.conn, cookie, NULL);
     free(reply);
 
     uint32_t blue = alloc_color("#FF00FF");
-    xcb_change_window_attributes(connection, ev->event, XCB_CW_BORDER_PIXEL, &blue);
+    xcb_change_window_attributes(global.conn, ev->event, XCB_CW_BORDER_PIXEL, &blue);
 
-    xcb_flush(connection);
+    xcb_flush(global.conn);
 }
 
 static void leave_notify(xcb_leave_notify_event_t *ev) {
     uint32_t value_mask = XCB_CW_BORDER_PIXEL;
     uint32_t value_list[] = { 0 };
-    logger("x: %d,\t y: %d,\t root: %d\n", ev->root_x, ev->root_y, root);
+    logger("x: %d,\t y: %d,\t root: %d\n", ev->root_x, ev->root_y, global.screen->root);
     logger("root: %d,\t event: %d,\t child: %d\n", ev->root, ev->event, ev->root);
-    xcb_change_window_attributes(connection, ev->root, value_mask, value_list);
-    xcb_flush(connection);
+    xcb_change_window_attributes(global.conn, ev->root, value_mask, value_list);
+    xcb_flush(global.conn);
 }
 
 
