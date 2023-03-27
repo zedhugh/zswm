@@ -1,10 +1,18 @@
+#include <X11/X.h>
+#include <X11/Xft/Xft.h>
+#include <X11/Xlib.h>
+#include <X11/Xlib-xcb.h>
 #include <X11/cursorfont.h>
+#include <X11/extensions/Xrender.h>
 #include <X11/keysym.h>
+#include <fontconfig/fontconfig.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
@@ -21,17 +29,19 @@
 
 zswm_global_t global;
 
-void check_other_wm(xcb_connection_t *connection) {
+
+xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    global.screen = iter.data;
+    xcb_screen_t *screen = NULL;
+    screen = iter.data;
 
     uint32_t mask = XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_ENTER_WINDOW |
         /* XCB_EVENT_MASK_POINTER_MOTION | */
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
         XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
     xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(connection,
-                                                                    global.screen->root,
+                                                                    screen->root,
                                                                     XCB_CW_EVENT_MASK,
                                                                     &mask);
 
@@ -40,6 +50,8 @@ void check_other_wm(xcb_connection_t *connection) {
         xcb_disconnect(connection);
         die("another window manager is already running");
     }
+
+    return screen;
 }
 
 void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
@@ -170,23 +182,73 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
     }
 }
 
+void draw_text() {
+    XftFont *xfont = NULL;
+    FcPattern *pattern = NULL;
+    XftColor *bg = NULL;
+    XftColor *fg = NULL;
+    XftDraw *draw = NULL;
+
+    const char *fontname = "Sarasa Mono SC:size=12";
+    /* const char *fontname = "Terminus:size=12"; */
+    /* this function is slow, need optimize */
+    xfont = XftFontOpenName(global.dpy, global.screen_nbr, fontname);
+    if (!xfont) {
+        return;
+    }
+
+    pattern = FcNameParse((FcChar8*)fontname);
+    if (!pattern) {
+        XftFontClose(global.dpy, xfont);
+    }
+
+    const char *bgname = "#ffffff";
+    const char *fgname = "#000000";
+    const char *text = "hello world, 陈中辉";
+
+    int default_screen = global.screen_nbr;
+    Visual *visual = DefaultVisual(global.dpy, default_screen);
+    Colormap cmap = global.screen->default_colormap;
+    draw = XftDrawCreate(global.dpy, global.mon->barwin, visual, cmap);
+    bg = ecalloc(1, sizeof(XftColor));
+    fg = ecalloc(1, sizeof(XftColor));
+
+    XftColorAllocName(global.dpy, visual, cmap, bgname, bg);
+    XftColorAllocName(global.dpy, visual, cmap, fgname, fg);
+    XftDrawRect(draw, bg, 0, 0, global.mon->mw, global.barheight);
+    int y = (global.barheight - xfont->height) / 2 + xfont->ascent;
+    XftDrawStringUtf8(draw, fg, xfont, 0, y, (XftChar8 *)text, strlen(text));
+
+    free(bg);
+    free(fg);
+
+    if (draw) {
+        XftDrawDestroy(draw);
+    }
+}
 
 int main() {
-    xcb_connection_t *conn = xcb_connect(NULL, NULL);
-    int err_code = xcb_connection_has_error(conn);
-    if (err_code != 0) {
+    Display *dpy = XOpenDisplay(NULL);
+    if (!dpy) {
         die("connection:");
     }
-    check_other_wm(conn);
 
+    xcb_connection_t *conn = XGetXCBConnection(dpy);
+    global.screen_nbr = DefaultScreen(dpy);
+    global.screen = check_other_wm(conn);
+    /* global.gc = XCreateGC(dpy, global.screen->root, 0, NULL); */
+    global.dpy = dpy;
     global.conn = conn;
     global.running = true;
     global.barheight = 20;
-
     global.mon = monitor_scan(conn);
+
     print_monitor_info(global.mon);
+
     init_cursors();
     update_bar(global.mon, global.barheight);
+
+    draw_text();
 
     grabkeys();
     xcb_generic_event_t *event;

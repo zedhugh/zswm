@@ -4,7 +4,8 @@ PWD_DIR := $(CURDIR)/
 
 LOG_FILE = /home/zedhugh/.zswm-log.txt
 LOG_FLAG = -DLOG_FILE=\"${LOG_FILE}\"
-CFLAGS = -lxcb-icccm -lxcb-keysyms -lxcb -lxcb-util -lxcb-xinerama -Wall ${LOG_FLAG}
+INCS = -I/usr/include/freetype2
+CFLAGS = -lfontconfig -lfreetype -lXft -lX11 -lX11-xcb -lxcb-icccm -lxcb-keysyms -lxcb -lxcb-util -lxcb-xinerama -Wall ${LOG_FLAG}
 SRC := zswm.c utils.c event.c
 
 TARGET_NAME := zswm
@@ -17,7 +18,7 @@ endif
 
 
 $(TARGET_NAME): $(SRC)
-	${CC} -o $(TARGET) $(CFLAGS) $(SRC)
+	${CC} -o $(TARGET) $(INCS) $(CFLAGS) $(SRC)
 
 clean:
 	${RM} $(TARGET)
