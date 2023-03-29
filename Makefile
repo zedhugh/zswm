@@ -1,6 +1,7 @@
 MAKEFILE_ABS_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MAKEFILE_DIR := $(dir $(MAKEFILE_ABS_PATH))
 PWD_DIR := $(CURDIR)/
+BUILD_DIR := $(MAKEFILE_DIR)/build
 
 LOG_FILE = /home/zedhugh/.zswm-log.txt
 LOG_FLAG = -DLOG_FILE=\"${LOG_FILE}\"
@@ -37,5 +38,11 @@ run: $(TARGET_NAME)
 wm: $(TARGET_NAME)
 	DISPLAY=:1 $(TARGET)
 
+prepare:
+	cmake -S $(MAKEFILE_DIR) -B $(BUILD_DIR)
+	@cp $(BUILD_DIR)/compile_commands.json $(MAKEFILE_DIR)
 
-.PHONY: clean install uninstall startx run
+build: prepare
+	cmake --build $(BUILD_DIR)
+
+.PHONY: clean install uninstall startx run prepare build
