@@ -1,3 +1,4 @@
+#include "cairo.h"
 #include <X11/Xlib.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,9 +32,11 @@ typedef struct {
     Display *dpy;
     xcb_connection_t *conn;
     xcb_screen_t *screen;
+    xcb_visualtype_t *visual;
     xcb_key_symbols_t *keysymbol;
     xcb_cursor_t cursors[CurLast];
     Monitor *mon;
+    cairo_surface_t *surface;
 } zswm_global_t;
 
 extern zswm_global_t global;

@@ -22,6 +22,8 @@
 #include <xcb/xinerama.h>
 #include <xcb/xproto.h>
 
+#include "cairo.h"
+#include "cairo-xcb.h"
 #include "config.h"
 #include "event.h"
 #include "utils.h"
@@ -217,6 +219,7 @@ void draw_text() {
     XftColorAllocName(global.dpy, visual, cmap, fgname, fg);
     XftDrawRect(draw, bg, 0, 0, global.mon->mw, global.barheight);
     int y = (global.barheight - xfont->height) / 2 + xfont->ascent;
+    printf("y: %d\n", y);
     XftDrawStringUtf8(draw, fg, xfont, 0, y, (XftChar8 *)text, strlen(text));
 
     free(bg);
@@ -236,6 +239,7 @@ int main() {
     xcb_connection_t *conn = XGetXCBConnection(dpy);
     global.screen_nbr = DefaultScreen(dpy);
     global.screen = check_other_wm(conn);
+    global.visual = find_visual(global.screen, global.screen->root_visual);
     /* global.gc = XCreateGC(dpy, global.screen->root, 0, NULL); */
     global.dpy = dpy;
     global.conn = conn;
@@ -248,7 +252,29 @@ int main() {
     init_cursors();
     update_bar(global.mon, global.barheight);
 
-    draw_text();
+    /* draw_text(); */
+
+    global.surface = cairo_xcb_surface_create(conn, global.mon->barwin, global.visual, global.mon->mw, global.barheight);
+    cairo_t *cr = cairo_create(global.surface);
+    cairo_set_source_rgb(cr, 1, 1, 1);
+    cairo_rectangle(cr, 0, 0, global.mon->mw, global.barheight);
+    cairo_fill(cr);
+
+    cairo_select_font_face(cr, "Sarasa Mono SC", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 12);
+    cairo_set_source_rgb(cr, 0, 0, 1);
+    cairo_text_extents_t te;
+    char *text = "hell 陈";
+    cairo_text_extents(cr, text, &te);
+    double y = (global.barheight - te.height) / 2 - te.y_bearing;
+    /* cairo_move_to(cr, 0, global.barheight - te.height / 2 + te.y_bearing); */
+    cairo_move_to(cr, 0, y);
+    printf("y: %lf, surface: %p, visual: %p, cr: %p\n", y, global.surface, global.visual, cr);
+    printf("width: %lf, height: %lf, x: %lf, y: %lf\n", te.width, te.height, te.x_bearing, te.y_bearing);
+    cairo_show_text(cr, text);
+    cairo_surface_flush(global.surface);
+    xcb_flush(conn);
+
 
     grabkeys();
     xcb_generic_event_t *event;

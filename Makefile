@@ -44,5 +44,6 @@ prepare:
 
 build: prepare
 	cmake --build $(BUILD_DIR)
+	@cp $(BUILD_DIR)/$(TARGET_NAME) $(TARGET_NAME)
 
 .PHONY: clean install uninstall startx run prepare build

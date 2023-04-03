@@ -17,17 +17,22 @@ target_include_directories(${BINARY} PRIVATE ${Fontconfig_INCLUDE_DIRS})
 find_package(X11 REQUIRED)
 target_link_libraries(${BINARY} X11 X11-xcb Xft xcb xcb-icccm xcb-keysyms xcb-util xcb-xinerama)
 
+find_package(PkgConfig REQUIRED)
 
-add_custom_target(copy_compile_commands
-  DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json)
+pkg_check_modules(Cairo cairo REQUIRED)
+if(Cairo_FOUND)
+  foreach(DIR IN LISTS Cairo_INCLUDE_DIRS)
+    target_include_directories(${BINARY} PRIVATE ${DIR})
+  endforeach()
 
-if (CMAKE_EXPORT_COMPILE_COMMANDS)
-  add_custom_command(
-    TARGET copy_compile_commands
-    PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
-    ${PROJECT_SOURCE_DIR}/compile_commands.json
-  )
-  # add_executable(${BINARY} DEPENDS aa)
+  foreach(LIB IN LISTS Cairo_LIBRARIES)
+    target_link_libraries(${BINARY} ${LIB})
+  endforeach()
+endif()
+
+pkg_check_modules(Cairo_XCB cairo-xcb REQUIRED)
+if(Cairo_XCB_FOUND)
+  foreach(LIB IN LISTS Cairo_LIBRARIES)
+    target_link_libraries(${BINARY} ${LIB})
+  endforeach()
 endif()
