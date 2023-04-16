@@ -5,14 +5,16 @@ BUILD_DIR := $(addprefix $(MAKEFILE_DIR),build)
 
 TARGET_NAME := zswm
 TARGET := $(addprefix ./,$(TARGET_NAME))
+SRC := zswm.c utils.c event.c
 
 ifneq ($(PWD_DIR),$(MAKEFILE_DIR))
+	SRC := $(addprefix $(MAKEFILE_DIR),$(SRC))
 	TARGET := $(addprefix $(MAKEFILE_DIR),$(TARGET_NAME))
 endif
 
 
-$(TARGET_NAME): build
-	echo $(BUILD_DIR) $(MAKEFILE_DIR) $(TARGET)
+$(TARGET_NAME): $(SRC)
+	$(MAKE) build
 
 clean:
 	${RM} $(TARGET)
@@ -25,11 +27,11 @@ wm: $(TARGET_NAME)
 	DISPLAY=:1 $(TARGET)
 
 prepare:
-	cmake -S $(MAKEFILE_DIR) -B $(BUILD_DIR)
+	@cmake -S $(MAKEFILE_DIR) -B $(BUILD_DIR)
 	@cp $(BUILD_DIR)/compile_commands.json $(MAKEFILE_DIR)
 
 build: prepare
-	cmake --build $(BUILD_DIR)
+	@cmake --build $(BUILD_DIR)
 	@cp $(BUILD_DIR)/$(TARGET_NAME) $(TARGET_NAME)
 
 .PHONY: clean run wm prepare build
