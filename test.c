@@ -61,6 +61,10 @@ int get_bar_height(PangoContext *context ,char **family_list, int length, int fo
         free(metrics);
     }
 
+    if (bh % 2) {
+        bh += 1;
+    }
+
     return  bh;;
 }
 
