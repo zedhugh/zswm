@@ -22,7 +22,7 @@ unsigned long len = LENGTH(familys);
 int bar_height = 0;
 
 void add_family_attr_to_list(PangoAttrList *list, char **family_list, int length, int font_size) {
-    char family[4096];
+    char family[4096] = { 0 };
     char *seperator = ", ";
 
     for (int i = 0; i < length; i++) {
@@ -65,9 +65,10 @@ int get_bar_height(PangoContext *context ,char **family_list, int length, int fo
 }
 
 PangoLayout *pango_draw() {
-    PangoContext *context = pango_context_new();
-    PangoLayout *layout = pango_layout_new(context);
     PangoFontMap *fontmap = pango_cairo_font_map_new();
+    PangoContext *context = pango_font_map_create_context(fontmap);
+    PangoLayout *layout = pango_layout_new(context);
+
     pango_context_set_font_map(context, fontmap);
 
     PangoAttrList *attrs = pango_attr_list_new();
@@ -120,6 +121,7 @@ int main()
 
     // create a cairo context for the surface
     cairo_t *cr = cairo_create(surface);
+    pango_cairo_update_layout(cr, layout);
 
     double y = PANGO_PIXELS(PANGO_ASCENT(irect)) + ((double)vp / 2) + ((double)(bar_height - height) / 2);
     cairo_move_to(cr, ((double)hp / 2), y);
