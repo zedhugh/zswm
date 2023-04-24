@@ -28,8 +28,6 @@ enum { CurNormal, CurResize, CurMove, CurLast };
 typedef struct {
     bool running;
     uint32_t barheight;
-    int screen_nbr;
-    Display *dpy;
     xcb_connection_t *conn;
     xcb_screen_t *screen;
     xcb_visualtype_t *visual;

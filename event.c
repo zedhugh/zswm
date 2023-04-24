@@ -4,6 +4,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
+#include <xcb/xcb_keysyms.h>
 
 #include "config.h"
 #include "event.h"
@@ -11,18 +12,29 @@
 #include "zswm.h"
 
 static void create_notify(xcb_create_notify_event_t *ev) {
-    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, global.screen->root);
+    logger("window: %d, parent: %d, root: %d\n",
+           ev->window, ev->parent, global.screen->root);
 }
 
 static void map_request(xcb_map_request_event_t *ev) {
-    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, global.screen->root);
+    logger("window: %d, parent: %d, root: %d\n",
+           ev->window, ev->parent, global.screen->root);
     xcb_map_window(global.conn, ev->window);
     xcb_map_subwindows(global.conn, ev->window);
 
     if (ev->parent == global.screen->root) {
-        uint32_t value_list[] = { XCB_EVENT_MASK_ENTER_WINDOW, XCB_EVENT_MASK_LEAVE_WINDOW };
-        xcb_change_window_attributes(global.conn, ev->window, XCB_CW_EVENT_MASK, value_list);
-        xcb_configure_window(global.conn, ev->window, XCB_CONFIG_WINDOW_Y, &global.barheight);
+        uint32_t value_list[] = {
+            XCB_EVENT_MASK_ENTER_WINDOW,
+            XCB_EVENT_MASK_LEAVE_WINDOW,
+        };
+        xcb_change_window_attributes(global.conn,
+                                     ev->window,
+                                     XCB_CW_EVENT_MASK,
+                                     value_list);
+        xcb_configure_window(global.conn,
+                             ev->window,
+                             XCB_CONFIG_WINDOW_Y,
+                             &global.barheight);
     }
 
     xcb_flush(global.conn);
@@ -33,8 +45,10 @@ static void map_notify(xcb_map_notify_event_t *ev) {
 }
 
 static void configure_request(xcb_configure_request_event_t *ev) {
-    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent, global.screen->root);
-    logger("x: %d, y: %d, width: %d, height: %d\n", ev->x, ev->y, ev->width, ev->height);
+    logger("window: %d, parent: %d, root: %d\n",
+           ev->window, ev->parent, global.screen->root);
+    logger("x: %d, y: %d, width: %d, height: %d\n",
+           ev->x, ev->y, ev->width, ev->height);
     xcb_params_configure_window_t params = {
         .x = ev->x,
         .y = ev->y,
@@ -44,24 +58,30 @@ static void configure_request(xcb_configure_request_event_t *ev) {
         .sibling = ev->sibling,
         .stack_mode = ev->stack_mode,
     };
-    xcb_aux_configure_window(global.conn, ev->window, ev->value_mask, &params);
+
+    xcb_window_t window = ev->window;
+    uint16_t mask = ev->value_mask;
+    xcb_aux_configure_window(global.conn, window, mask, &params);
     xcb_flush(global.conn);
 }
 
 static void keypress(xcb_key_press_event_t *ev) {
-    xcb_keysym_t keysym = xcb_key_press_lookup_keysym(global.keysymbol, ev, 0);
+    xcb_key_symbols_t *syms = global.keysymbol;
+    xcb_keysym_t keysym = xcb_key_press_lookup_keysym(syms, ev, 0);
     logger("keysym: %d\n", keysym);
 
     for (int i = 0; i < LENGTH(keys); i++) {
-        if (keysym == keys[i].keysym && ev->state == keys[i].modifier && keys[i].func) {
-            keys[i].func(&keys[i].arg);
+        Key key = keys[i];
+        if (keysym == key.keysym && ev->state == key.modifier && key.func) {
+            key.func(&key.arg);
             return;
         }
     }
 }
 
 static void button_press(xcb_button_press_event_t *ev) {
-    logger("root: %d, event: %d, child: %d\n", ev->root, ev->event, ev->child);
+    const char *format = "root: %d, event: %d, child: %d\n";
+    logger(format, ev->root, ev->event, ev->child);
 }
 
 static void client_message(xcb_client_message_event_t *ev) {
@@ -77,8 +97,10 @@ static void motion_notify(xcb_motion_notify_event_t *ev) {
 }
 
 static void enter_notify(xcb_enter_notify_event_t *ev) {
-    logger("x: %d,\t y: %d,\t root: %d\n", ev->root_x, ev->root_y, global.screen->root);
-    logger("root: %d,\t event: %d,\t child: %d\n", ev->root, ev->event, ev->root);
+    const char *pos_fmt = "x: %d,\t y: %d,\t root: %d\n";
+    const char *win_fmt = "root: %d,\t event: %d,\t child: %d\n";
+    logger(pos_fmt, ev->root_x, ev->root_y, global.screen->root);
+    logger(win_fmt, ev->root, ev->event, ev->root);
 
     if (ev->event == global.screen->root) return;
 
@@ -90,13 +112,17 @@ static void enter_notify(xcb_enter_notify_event_t *ev) {
         .height = global.screen->height_in_pixels - 2 - 20,
         .border_width = 1,
     };
-    xcb_configure_window_aux(global.conn, ev->event, value_mask, &value_list);
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(global.conn, ev->event);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(global.conn, cookie, NULL);
+
+    xcb_connection_t *c = global.conn;
+    xcb_window_t window = ev->event;
+    xcb_configure_window_aux(c, window, value_mask, &value_list);
+    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(c, window);
+    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(c, cookie, NULL);
     free(reply);
 
     uint32_t blue = alloc_color("#FF00FF");
-    xcb_change_window_attributes(global.conn, ev->event, XCB_CW_BORDER_PIXEL, &blue);
+    uint32_t mask = XCB_CW_BORDER_PIXEL;
+    xcb_change_window_attributes(c, window, mask, &blue);
 
     xcb_flush(global.conn);
 }
@@ -104,10 +130,15 @@ static void enter_notify(xcb_enter_notify_event_t *ev) {
 static void leave_notify(xcb_leave_notify_event_t *ev) {
     uint32_t value_mask = XCB_CW_BORDER_PIXEL;
     uint32_t value_list[] = { 0 };
-    logger("x: %d,\t y: %d,\t root: %d\n", ev->root_x, ev->root_y, global.screen->root);
-    logger("root: %d,\t event: %d,\t child: %d\n", ev->root, ev->event, ev->root);
-    xcb_change_window_attributes(global.conn, ev->root, value_mask, value_list);
-    xcb_flush(global.conn);
+
+    const char *pos_fmt = "x: %d,\t y: %d,\t root: %d\n";
+    const char *win_fmt = "root: %d,\t event: %d,\t child: %d\n";
+    logger(pos_fmt, ev->root_x, ev->root_y, global.screen->root);
+    logger(win_fmt, ev->root, ev->event, ev->root);
+
+    xcb_connection_t *c = global.conn;
+    xcb_change_window_attributes(c, ev->root, value_mask, value_list);
+    xcb_flush(c);
 }
 
 

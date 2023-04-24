@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <xcb/xproto.h>
+
 #include "zswm.h"
 
 #ifndef __ZS_WM_UTILS__

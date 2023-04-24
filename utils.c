@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-#include <xcb/xproto.h>
+
 #include "global.h"
 #include "utils.h"
 #include "zswm.h"
@@ -64,21 +64,25 @@ void spawn(const Arg * arg) {
 
 uint32_t alloc_color(const char *color) {
     uint16_t red, green, blue;
-    uint32_t color_pixel;
+    xcb_alloc_color_cookie_t cookie;
+    xcb_alloc_color_reply_t *reply;
 
     xcb_aux_parse_color(color, &red, &green, &blue);
-    xcb_alloc_color_cookie_t cookie = xcb_alloc_color(global.conn, global.screen->default_colormap, red, green, blue);
-    xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(global.conn, cookie, NULL);
-    color_pixel = reply->pixel;
+    xcb_colormap_t cmap = global.screen->default_colormap;
+    cookie = xcb_alloc_color(global.conn, cmap, red, green, blue);
+    reply= xcb_alloc_color_reply(global.conn, cookie, NULL);
+    uint32_t color_pixel = reply->pixel;
 
     free(reply);
     return color_pixel;
 }
 
-xcb_visualtype_t *find_visual(xcb_screen_t *screen , xcb_visualid_t visualid) {
-    xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator(screen);
+xcb_visualtype_t * find_visual(xcb_screen_t *screen , xcb_visualid_t visualid) {
+    xcb_depth_iterator_t depth_iter;
+    depth_iter = xcb_screen_allowed_depths_iterator(screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-        xcb_visualtype_iterator_t  visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+        xcb_visualtype_iterator_t  visual_iter;
+        visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
         if (visual_iter.data->visual_id == visualid) {
             return visual_iter.data;
         }

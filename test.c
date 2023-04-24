@@ -39,7 +39,8 @@ void add_family_attr_to_list(PangoAttrList *list, char **family_list, int length
     pango_attr_list_insert(list, size_attr);
 }
 
-int get_bar_height(PangoContext *context ,char **family_list, int length, int font_size) {
+int get_bar_height(PangoContext *context, char **family_list, int length,
+                   int font_size) {
     PangoLanguage *lang = pango_context_get_language(context);
 
     int bh = 0;
@@ -49,7 +50,8 @@ int get_bar_height(PangoContext *context ,char **family_list, int length, int fo
         pango_font_description_set_family(desc, family_list[i]);
         pango_font_description_set_size(desc, font_size * PANGO_SCALE);
 
-        PangoFontMetrics *metrics = pango_context_get_metrics(context, desc, lang);
+        PangoFontMetrics *metrics =
+            pango_context_get_metrics(context, desc, lang);
         int height = PANGO_PIXELS(pango_font_metrics_get_height(metrics));
         int ascent = PANGO_PIXELS(pango_font_metrics_get_ascent(metrics));
         int descent = PANGO_PIXELS(pango_font_metrics_get_descent(metrics));
@@ -65,7 +67,8 @@ int get_bar_height(PangoContext *context ,char **family_list, int length, int fo
         bh += 1;
     }
 
-    return  bh;;
+    return bh;
+    ;
 }
 
 PangoLayout *pango_draw() {
@@ -76,14 +79,14 @@ PangoLayout *pango_draw() {
     pango_context_set_font_map(context, fontmap);
 
     PangoAttrList *attrs = pango_attr_list_new();
-    PangoAttribute *fg = pango_attr_foreground_new(0xFFFF, 0xFFFF, 0xFFFF);
-    PangoAttribute *fga = pango_attr_background_alpha_new(0xFFFF);
-    PangoAttribute *bg = pango_attr_foreground_new(0x0000, 0x0000, 0x0000);
+    PangoAttribute *fg = pango_attr_foreground_new(0x0000, 0x0000, 0x0000);
+    PangoAttribute *fga = pango_attr_foreground_alpha_new(0xFFFF);
+    PangoAttribute *bg = pango_attr_background_new(0xFFFF, 0xFFFF, 0xFFFF);
     PangoAttribute *bga = pango_attr_background_alpha_new(0xFFFF);
     pango_attr_list_insert(attrs, fg);
-    pango_attr_list_insert(attrs, fga);
+    /* pango_attr_list_insert(attrs, fga); */
     pango_attr_list_insert(attrs, bg);
-    pango_attr_list_insert(attrs, bga);
+    /* pango_attr_list_insert(attrs, bga); */
 
     add_family_attr_to_list(attrs, familys, len, size);
     pango_layout_set_attributes(layout, attrs);
@@ -91,7 +94,7 @@ PangoLayout *pango_draw() {
     bar_height = get_bar_height(context, familys, len, size);
     printf("bar height: %d\n", bar_height);
 
-    char *text = "ABCDEFGUIJKLMNOPQRSTUVWXYZ abcdefguijklmnopqrstuvwxyz 0123456789 Firefox 陈中辉";
+    char *text = "ABCDEFGUIJKLMNOPQRSTUVWXYZ abcdefguijklmnopqrstuvwxyz 0123456789 test.c - GNU Emacs at desktop Firefox 陈中辉";
     pango_layout_set_text(layout, text, -1);
 
     PangoRectangle irect;

@@ -8,6 +8,7 @@
 #include <fontconfig/fontconfig.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,17 +36,18 @@ zswm_global_t global;
 xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    xcb_screen_t *screen = NULL;
-    screen = iter.data;
+    xcb_screen_t *screen = iter.data;
 
     uint32_t mask = XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_ENTER_WINDOW |
         /* XCB_EVENT_MASK_POINTER_MOTION | */
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
         XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
-    xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(connection,
-                                                                    screen->root,
-                                                                    XCB_CW_EVENT_MASK,
-                                                                    &mask);
+
+    xcb_void_cookie_t cookie;
+    cookie = xcb_change_window_attributes_checked(connection,
+                                                  screen->root,
+                                                  XCB_CW_EVENT_MASK,
+                                                  &mask);
 
     xcb_generic_error_t *error = xcb_request_check(connection, cookie);
     if (error) {
@@ -64,12 +66,16 @@ void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
     m->next = NULL;
 }
 
-Monitor *monitor_scan(xcb_connection_t *connection) {
+Monitor *monitor_scan(xcb_connection_t *conn) {
     Monitor *monitor, *temp_monitor;
 
-    xcb_xinerama_query_screens_cookie_t cookie = xcb_xinerama_query_screens(connection);
-    xcb_xinerama_query_screens_reply_t *screens_reply = xcb_xinerama_query_screens_reply(connection, cookie, NULL);
-    xcb_xinerama_screen_info_t *screen_info = xcb_xinerama_query_screens_screen_info(screens_reply);
+    xcb_xinerama_query_screens_cookie_t cookie;
+    xcb_xinerama_query_screens_reply_t *reply;
+    xcb_xinerama_screen_info_t *screen_info;
+
+    cookie = xcb_xinerama_query_screens(conn);
+    reply = xcb_xinerama_query_screens_reply(conn, cookie, NULL);
+    screen_info = xcb_xinerama_query_screens_screen_info(reply);
 
     if (screen_info == NULL) {
         die("no monitor finded");
@@ -78,7 +84,7 @@ Monitor *monitor_scan(xcb_connection_t *connection) {
     monitor = temp_monitor = ecalloc(1, sizeof(Monitor));
     copy_screen_info(monitor, screen_info);
 
-    int count = xcb_xinerama_query_screens_screen_info_length(screens_reply);
+    int count = xcb_xinerama_query_screens_screen_info_length(reply);
 
     for (int i = 1; i < count; i++) {
         temp_monitor->next = ecalloc(1, sizeof(Monitor));
@@ -100,14 +106,24 @@ void grabkeys(void) {
     xcb_connection_t *conn = global.conn;
     xcb_window_t root = global.screen->root;
 
-    xcb_ungrab_key(conn, XCB_GRAB_ANY, root, XCB_MOD_MASK_ANY);
+    xcb_keycode_t key = XCB_GRAB_ANY;
+    uint16_t modifiers = XCB_MOD_MASK_ANY;
+    xcb_ungrab_key(conn, key, root, modifiers);
     xcb_flush(conn);
 
     global.keysymbol = xcb_key_symbols_alloc(conn);
 
     for (int i = 0; i < LENGTH(keys); i++) {
-        xcb_keycode_t *keycodesPtr = xcb_key_symbols_get_keycode(global.keysymbol, keys[i].keysym);
-        xcb_grab_key(conn, XCB_GRAB_ANY, root, keys[i].modifier, *keycodesPtr, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_key_symbols_t *syms = global.keysymbol;
+        xcb_keysym_t keysym = keys[i].keysym;
+        xcb_keycode_t *keycodesPtr = xcb_key_symbols_get_keycode(syms, keysym);
+        xcb_grab_key(conn,
+                     XCB_GRAB_ANY,
+                     root,
+                     keys[i].modifier,
+                     *keycodesPtr,
+                     XCB_GRAB_MODE_ASYNC,
+                     XCB_GRAB_MODE_ASYNC);
     }
     xcb_flush(conn);
 }
@@ -118,14 +134,19 @@ static void init_cursors() {
 
     xcb_font_t font = xcb_generate_id(conn);
     const char *cursorfont = "cursor";
-    xcb_open_font_checked(conn, font, strlen(cursorfont), cursorfont);
+    size_t name_len = strlen(cursorfont);
+    xcb_open_font_checked(conn, font, name_len, cursorfont);
 
     for (int i = CurNormal; i < CurLast; i++) {
         xcb_cursor_t temp_cursor = xcb_generate_id(conn);
-        xcb_create_glyph_cursor_checked(conn, temp_cursor,
-                                        font, font,
-                                        XC_left_ptr, XC_left_ptr + 1,
-                                        0, 0, 0, 0, 0, 0);
+        xcb_create_glyph_cursor_checked(conn,
+                                        temp_cursor,
+                                        font,
+                                        font,
+                                        XC_left_ptr,
+                                        XC_left_ptr + 1,
+                                        0, 0, 0,
+                                        0, 0, 0);
         cursors[i] = temp_cursor;
     }
 }
@@ -140,7 +161,7 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
 
         xcb_window_t win = xcb_generate_id(conn);
         xcb_void_cookie_t cookie;
-        uint32_t mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP |
+        uint32_t value_mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP |
             XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
         xcb_create_window_value_list_t value = {
             .override_redirect = 1,
@@ -149,16 +170,15 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
             .event_mask = XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_EXPOSURE,
             .cursor = cursors[CurNormal],
         };
-        cookie = xcb_create_window_aux_checked(conn,
-                                               screen->root_depth,
-                                               win,
-                                               screen->root,
+
+        uint16_t class = XCB_WINDOW_CLASS_INPUT_OUTPUT;
+        cookie = xcb_create_window_aux_checked(conn, screen->root_depth,
+                                               win, screen->root,
                                                m->mx, m->my,
                                                m->mw, barheight,
                                                0,
-                                               XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                                               screen->root_visual,
-                                               mask, &value);
+                                               class, screen->root_visual,
+                                               value_mask, &value);
         if (xcb_request_check(conn, cookie)) {
             die("create bar window:");
         }
@@ -171,78 +191,33 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
         }
 
         /**
-         * set wm class use xcb api, reference https://github.com/awesomeWM/awesome/blob/master/xwindow.h
+         * set wm class use xcb api,
+         * reference https://github.com/awesomeWM/awesome/blob/master/xwindow.h
          * it's equal to X11 api below
          * XClassHint ch = { "zswm", "zswm" };
          * XSetClassHint(dpy, win, &ch);
          */
         char class_name[] = "zswm\0zswm"; /* class and instance splited by \0 */
-        xcb_icccm_set_wm_class(conn, win, sizeof(class_name), class_name);
+        size_t class_len = sizeof(class_name);
+        xcb_icccm_set_wm_class(conn, win, class_len, class_name);
 
         xcb_aux_sync(conn);
         m->barwin = win;
     }
 }
 
-void draw_text() {
-    XftFont *xfont = NULL;
-    FcPattern *pattern = NULL;
-    XftColor *bg = NULL;
-    XftColor *fg = NULL;
-    XftDraw *draw = NULL;
-
-    const char *fontname = "Sarasa Mono SC:size=12";
-    /* const char *fontname = "Terminus:size=12"; */
-    /* this function is slow, need optimize */
-    xfont = XftFontOpenName(global.dpy, global.screen_nbr, fontname);
-    if (!xfont) {
-        return;
-    }
-
-    pattern = FcNameParse((FcChar8*)fontname);
-    if (!pattern) {
-        XftFontClose(global.dpy, xfont);
-    }
-
-    const char *bgname = "#ffffff";
-    const char *fgname = "#000000";
-    const char *text = "hello world, 陈中辉";
-
-    int default_screen = global.screen_nbr;
-    Visual *visual = DefaultVisual(global.dpy, default_screen);
-    Colormap cmap = global.screen->default_colormap;
-    draw = XftDrawCreate(global.dpy, global.mon->barwin, visual, cmap);
-    bg = ecalloc(1, sizeof(XftColor));
-    fg = ecalloc(1, sizeof(XftColor));
-
-    XftColorAllocName(global.dpy, visual, cmap, bgname, bg);
-    XftColorAllocName(global.dpy, visual, cmap, fgname, fg);
-    XftDrawRect(draw, bg, 0, 0, global.mon->mw, global.barheight);
-    int y = (global.barheight - xfont->height) / 2 + xfont->ascent;
-    printf("y: %d\n", y);
-    XftDrawStringUtf8(draw, fg, xfont, 0, y, (XftChar8 *)text, strlen(text));
-
-    free(bg);
-    free(fg);
-
-    if (draw) {
-        XftDrawDestroy(draw);
-    }
-}
-
 int main() {
-    Display *dpy = XOpenDisplay(NULL);
-    if (!dpy) {
+    xcb_connection_t *conn = xcb_connect(NULL, NULL);
+
+    if (!conn) {
         die("connection:");
     }
 
-    xcb_connection_t *conn = XGetXCBConnection(dpy);
-    global.screen_nbr = DefaultScreen(dpy);
-    global.screen = check_other_wm(conn);
-    global.visual = find_visual(global.screen, global.screen->root_visual);
-    /* global.gc = XCreateGC(dpy, global.screen->root, 0, NULL); */
-    global.dpy = dpy;
+    xcb_screen_t *screen = check_other_wm(conn);
+
     global.conn = conn;
+    global.screen = screen;
+    global.visual = find_visual(screen, global.screen->root_visual);
     global.running = true;
     global.barheight = 20;
     global.mon = monitor_scan(conn);
@@ -252,26 +227,15 @@ int main() {
     init_cursors();
     update_bar(global.mon, global.barheight);
 
-    /* draw_text(); */
-
-    global.surface = cairo_xcb_surface_create(conn, global.mon->barwin, global.visual, global.mon->mw, global.barheight);
+    global.surface = cairo_xcb_surface_create(conn,
+                                              global.mon->barwin,
+                                              global.visual,
+                                              global.mon->mw,
+                                              global.barheight);
     cairo_t *cr = cairo_create(global.surface);
     cairo_set_source_rgb(cr, 1, 1, 1);
     cairo_rectangle(cr, 0, 0, global.mon->mw, global.barheight);
     cairo_fill(cr);
-
-    cairo_select_font_face(cr, "Sarasa Mono SC", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(cr, 12);
-    cairo_set_source_rgb(cr, 0, 0, 1);
-    cairo_text_extents_t te;
-    char *text = "hell 陈";
-    cairo_text_extents(cr, text, &te);
-    double y = (global.barheight - te.height) / 2 - te.y_bearing;
-    /* cairo_move_to(cr, 0, global.barheight - te.height / 2 + te.y_bearing); */
-    cairo_move_to(cr, 0, y);
-    printf("y: %lf, surface: %p, visual: %p, cr: %p\n", y, global.surface, global.visual, cr);
-    printf("width: %lf, height: %lf, x: %lf, y: %lf\n", te.width, te.height, te.x_bearing, te.y_bearing);
-    cairo_show_text(cr, text);
     cairo_surface_flush(global.surface);
     xcb_flush(conn);
 
