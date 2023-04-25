@@ -13,7 +13,7 @@ typedef struct {
     const Arg arg;
 } Key;
 
-static char *font_families[] = { "Terminus", "Emacs Simsun" };
+static char *font_families[] = { "Emacs Simsun", "Terminus" };
 static int font_size = 12;
 
 static const char col_gray1[] = "#222222";

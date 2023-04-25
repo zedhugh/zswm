@@ -1,37 +1,34 @@
-#include <X11/X.h>
-#include <X11/Xft/Xft.h>
-#include <X11/Xlib.h>
-#include <X11/Xlib-xcb.h>
 #include <X11/cursorfont.h>
-#include <X11/extensions/Xrender.h>
-#include <X11/keysym.h>
-#include <fontconfig/fontconfig.h>
-#include <inttypes.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-#include <xcb/xcb_event.h>
 #include <xcb/xcb_icccm.h>
-#include <xcb/xcb_keysyms.h>
 #include <xcb/xinerama.h>
-#include <xcb/xproto.h>
 
 #include "cairo.h"
 #include "cairo-xcb.h"
 #include "config.h"
 #include "event.h"
+#include "pango/pango-attributes.h"
+#include "pango/pango-layout.h"
+#include "pango/pangocairo.h"
+#include "pango/pango-types.h"
 #include "utils.h"
 #include "zswm.h"
 
 zswm_global_t global;
 
+typedef struct {
+    uint8_t barheight;
+    PangoLayout *layout;
+} PangoInit;
+
+static void init_cursors(void);
+static PangoInit init_pango(char **families, int length, uint8_t size);
+static void init_bar_window(Monitor *monitor, uint8_t barheight);
+static xcb_screen_t *check_other_wm(xcb_connection_t *connection);
+static void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s);
+static Monitor *monitor_scan(xcb_connection_t *conn);
 
 xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
@@ -128,7 +125,7 @@ void grabkeys(void) {
     xcb_flush(conn);
 }
 
-static void init_cursors() {
+void init_cursors() {
     xcb_connection_t *conn = global.conn;
     xcb_cursor_t *cursors = global.cursors;
 
@@ -151,7 +148,7 @@ static void init_cursors() {
     }
 }
 
-static void update_bar(Monitor *monitor, uint16_t barheight) {
+void init_bar_window(Monitor *monitor, uint8_t barheight) {
     xcb_connection_t *conn = global.conn;
     xcb_screen_t *screen = global.screen;
     xcb_cursor_t *cursors = global.cursors;
@@ -183,8 +180,6 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
             die("create bar window:");
         }
 
-
-
         cookie = xcb_map_window(conn, win);
         if (xcb_request_check(conn, cookie)) {
             die("map bar window:");
@@ -201,9 +196,81 @@ static void update_bar(Monitor *monitor, uint16_t barheight) {
         size_t class_len = sizeof(class_name);
         xcb_icccm_set_wm_class(conn, win, class_len, class_name);
 
-        xcb_aux_sync(conn);
         m->barwin = win;
+
+        cairo_surface_t *surface;
+        surface = cairo_xcb_surface_create(conn, win,
+                                           global.visual,
+                                           m->mw, barheight);
+        m->surface = surface;
+        m->cr = cairo_create(surface);
+
+        xcb_aux_sync(conn);
     }
+}
+
+PangoInit init_pango(char **families, int length, uint8_t size) {
+    PangoFontMap *fontmap = pango_cairo_font_map_new();
+    PangoContext *context = pango_font_map_create_context(fontmap);
+    PangoLayout *layout = pango_layout_new(context);
+    PangoLanguage *lang = pango_context_get_language(context);
+    PangoAttrList *list = pango_attr_list_new();
+
+    PangoInit init = { .layout = layout, .barheight = 0 };
+
+    uint8_t bh = 0;
+
+    for (int i = 0; i < length; i++) {
+        PangoFontDescription *desc = pango_font_description_new();
+        pango_font_description_set_family(desc, families[i]);
+        pango_font_description_set_size(desc, size * PANGO_SCALE);
+
+        PangoAttribute *attr = pango_attr_font_desc_new(desc);
+        pango_attr_list_insert(list, attr);
+
+        PangoFontMetrics *metrics;
+        metrics =pango_context_get_metrics(context, desc, lang);
+
+        int height = PANGO_PIXELS(pango_font_metrics_get_height(metrics));
+        int ascent = PANGO_PIXELS(pango_font_metrics_get_ascent(metrics));
+        int descent = PANGO_PIXELS(pango_font_metrics_get_descent(metrics));
+
+        int inner_bh = MIN(height, ascent + descent);
+        bh = MAX(inner_bh, bh);
+
+        free(desc);
+        free(metrics);
+    }
+
+    pango_layout_set_attributes(layout, list);
+
+
+    if (bh % 2) {
+        bh += 1;
+    }
+
+    init.barheight = bh;
+
+    return init;
+}
+
+PangoRectangle get_layout_rect(PangoLayout *layout, int barheight) {
+    PangoRectangle rect;
+
+    PangoRectangle ir, lr;
+    pango_layout_get_extents(layout, &ir, &lr);
+    int layout_width = MAX(PANGO_PIXELS(ir.width), PANGO_PIXELS(lr.width));
+    int layout_height = MIN(PANGO_PIXELS(ir.height), PANGO_PIXELS(lr.height));
+    int ascent = MIN(PANGO_PIXELS(PANGO_ASCENT(ir)), PANGO_PIXELS(PANGO_ASCENT(lr)));
+    int y = ascent + (barheight - layout_height) / 2;
+    printf("y: %d, h: %u,lh: %u\n", y,  barheight, layout_height);
+
+    rect.x = 0;
+    rect.y = y;
+    rect.width = layout_width;
+    rect.height = layout_height;
+
+    return rect;
 }
 
 int main() {
@@ -214,31 +281,51 @@ int main() {
     }
 
     xcb_screen_t *screen = check_other_wm(conn);
+    xcb_visualtype_t *visual = find_visual(screen, screen->root_visual);
+    Monitor *monitor = monitor_scan(conn);
+    int length = LENGTH(font_families);
+    PangoInit init = init_pango(font_families, length, font_size);
 
     global.conn = conn;
     global.screen = screen;
-    global.visual = find_visual(screen, global.screen->root_visual);
+    global.visual = visual;
+    global.monitor = monitor;
+    global.barheight = init.barheight;
+    global.layout = init.layout;
     global.running = true;
-    global.barheight = 20;
-    global.mon = monitor_scan(conn);
 
-    print_monitor_info(global.mon);
+    init_bar_window(monitor, init.barheight);
+
+
+    print_monitor_info(monitor);
 
     init_cursors();
-    update_bar(global.mon, global.barheight);
 
-    global.surface = cairo_xcb_surface_create(conn,
-                                              global.mon->barwin,
-                                              global.visual,
-                                              global.mon->mw,
-                                              global.barheight);
-    cairo_t *cr = cairo_create(global.surface);
+
+    uint16_t height = global.barheight;
+
+    cairo_surface_t *surface;
+    surface = cairo_xcb_surface_create(conn,
+                                       global.monitor->barwin,
+                                       global.visual,
+                                       global.monitor->mw,
+                                       global.barheight);
+    cairo_t *cr = cairo_create(surface);
     cairo_set_source_rgb(cr, 1, 1, 1);
-    cairo_rectangle(cr, 0, 0, global.mon->mw, global.barheight);
+    cairo_rectangle(cr, 0, 0, global.monitor->mw, global.barheight);
     cairo_fill(cr);
-    cairo_surface_flush(global.surface);
-    xcb_flush(conn);
+    cairo_surface_flush(surface);
+    pango_cairo_update_layout(monitor->cr, global.layout);
 
+    const char *text = "你好陈中辉, zswm.c - GNU Emacs at desktop";
+    pango_layout_set_text(global.layout, text, -1);
+    PangoRectangle layout_rect = get_layout_rect(global.layout, global.barheight);
+
+    cairo_move_to(monitor->cr, 0, layout_rect.y);
+
+    pango_cairo_show_layout(monitor->cr, global.layout);
+
+    xcb_flush(conn);
 
     grabkeys();
     xcb_generic_event_t *event;

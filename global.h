@@ -1,4 +1,5 @@
 #include "cairo.h"
+#include "pango/pango-layout.h"
 #include <X11/Xlib.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -18,6 +19,8 @@ struct Monitor {
     uint16_t ww, wh;
 
     xcb_window_t barwin;
+    cairo_surface_t *surface;
+    cairo_t *cr;
 
     Monitor *next;
 };
@@ -27,14 +30,14 @@ enum { CurNormal, CurResize, CurMove, CurLast };
 
 typedef struct {
     bool running;
-    uint32_t barheight;
+    uint8_t barheight;
     xcb_connection_t *conn;
     xcb_screen_t *screen;
     xcb_visualtype_t *visual;
     xcb_key_symbols_t *keysymbol;
     xcb_cursor_t cursors[CurLast];
-    Monitor *mon;
-    cairo_surface_t *surface;
+    Monitor *monitor;
+    PangoLayout *layout;
 } zswm_global_t;
 
 extern zswm_global_t global;
