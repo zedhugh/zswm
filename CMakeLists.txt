@@ -4,9 +4,12 @@ project(zswm VERSION 2.0 LANGUAGES C)
 
 add_compile_definitions(LOG_FILE="/home/zedhugh/zswm-log.txt")
 
+set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BINARY "zswm")
-add_executable(${BINARY} zswm.c utils.c event.c)
+add_executable(${BINARY} zswm.c utils.c draw.c event.c)
+
+target_include_directories(${BINARY} PRIVATE ${SOURCE_DIR})
 
 find_package(X11 REQUIRED)
 target_link_libraries(${BINARY} X11 X11-xcb xcb xcb-icccm xcb-keysyms xcb-util xcb-xinerama)

@@ -8,6 +8,7 @@
 #include "cairo.h"
 #include "cairo-xcb.h"
 #include "config.h"
+#include "draw.h"
 #include "event.h"
 #include "pango/pango-attributes.h"
 #include "pango/pango-layout.h"
@@ -254,25 +255,6 @@ PangoInit init_pango(char **families, int length, uint8_t size) {
     return init;
 }
 
-PangoRectangle get_layout_rect(PangoLayout *layout, int barheight) {
-    PangoRectangle rect;
-
-    PangoRectangle ir, lr;
-    pango_layout_get_extents(layout, &ir, &lr);
-    int layout_width = MAX(PANGO_PIXELS(ir.width), PANGO_PIXELS(lr.width));
-    int layout_height = MIN(PANGO_PIXELS(ir.height), PANGO_PIXELS(lr.height));
-    int ascent = MIN(PANGO_PIXELS(PANGO_ASCENT(ir)), PANGO_PIXELS(PANGO_ASCENT(lr)));
-    int y = ascent + (barheight - layout_height) / 2;
-    printf("y: %d, h: %u,lh: %u\n", y,  barheight, layout_height);
-
-    rect.x = 0;
-    rect.y = y;
-    rect.width = layout_width;
-    rect.height = layout_height;
-
-    return rect;
-}
-
 int main() {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -300,30 +282,7 @@ int main() {
     print_monitor_info(monitor);
 
     init_cursors();
-
-
-    uint16_t height = global.barheight;
-
-    cairo_surface_t *surface;
-    surface = cairo_xcb_surface_create(conn,
-                                       global.monitor->barwin,
-                                       global.visual,
-                                       global.monitor->mw,
-                                       global.barheight);
-    cairo_t *cr = cairo_create(surface);
-    cairo_set_source_rgb(cr, 1, 1, 1);
-    cairo_rectangle(cr, 0, 0, global.monitor->mw, global.barheight);
-    cairo_fill(cr);
-    cairo_surface_flush(surface);
-    pango_cairo_update_layout(monitor->cr, global.layout);
-
-    const char *text = "你好陈中辉, zswm.c - GNU Emacs at desktop";
-    pango_layout_set_text(global.layout, text, -1);
-    PangoRectangle layout_rect = get_layout_rect(global.layout, global.barheight);
-
-    cairo_move_to(monitor->cr, 0, layout_rect.y);
-
-    pango_cairo_show_layout(monitor->cr, global.layout);
+    update_monitor_bar();
 
     xcb_flush(conn);
 

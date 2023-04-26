@@ -5,7 +5,7 @@ BUILD_DIR := $(addprefix $(MAKEFILE_DIR),build)
 
 TARGET_NAME := zswm
 TARGET := $(addprefix ./,$(TARGET_NAME))
-SRC := zswm.c utils.c event.c config.h
+SRC := zswm.c utils.c event.c draw.c config.h
 
 ifneq ($(PWD_DIR),$(MAKEFILE_DIR))
 	SRC := $(addprefix $(MAKEFILE_DIR),$(SRC))

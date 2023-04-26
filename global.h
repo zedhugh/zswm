@@ -7,6 +7,7 @@
 #include <xcb/xproto.h>
 
 #ifndef __ZS_WM__GLOBAL__
+#define __ZS_WM__GLOBAL__
 
 typedef struct Monitor Monitor;
 struct Monitor {

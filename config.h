@@ -1,4 +1,5 @@
 #include <X11/keysym.h>
+
 #include "global.h"
 #include "utils.h"
 #include "zswm.h"
@@ -14,7 +15,10 @@ typedef struct {
 } Key;
 
 static char *font_families[] = { "Emacs Simsun", "Terminus" };
+/* static char *font_families[] = { "Terminus", "Emacs Simsun" }; */
 static int font_size = 12;
+
+static char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 
 static const char col_gray1[] = "#222222";
 static const char col_gray2[] = "#444444";
