@@ -1,5 +1,6 @@
 #include <X11/cursorfont.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
@@ -15,11 +16,11 @@
 #include "pango/pangocairo.h"
 #include "pango/pango-types.h"
 #include "utils.h"
-#include "zswm.h"
 
 zswm_global_t global;
 
 typedef struct {
+    uint8_t lrpad;
     uint8_t barheight;
     PangoLayout *layout;
 } PangoInit;
@@ -137,19 +138,14 @@ void init_cursors() {
 
     for (int i = CurNormal; i < CurLast; i++) {
         xcb_cursor_t temp_cursor = xcb_generate_id(conn);
-        xcb_create_glyph_cursor_checked(conn,
-                                        temp_cursor,
-                                        font,
-                                        font,
-                                        XC_left_ptr,
-                                        XC_left_ptr + 1,
-                                        0, 0, 0,
-                                        0, 0, 0);
+        xcb_create_glyph_cursor_checked(conn, temp_cursor, font, font,
+                                        XC_left_ptr, XC_left_ptr + 1,
+                                        0, 0, 0, 0, 0, 0);
         cursors[i] = temp_cursor;
     }
 }
 
-void init_bar_window(Monitor *monitor, uint8_t barheight) {
+void init_bar_window(Monitor *monitor, uint8_t height) {
     xcb_connection_t *conn = global.conn;
     xcb_screen_t *screen = global.screen;
     xcb_cursor_t *cursors = global.cursors;
@@ -160,11 +156,10 @@ void init_bar_window(Monitor *monitor, uint8_t barheight) {
         xcb_window_t win = xcb_generate_id(conn);
         xcb_void_cookie_t cookie;
         uint32_t value_mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP |
-            XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
+            XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
         xcb_create_window_value_list_t value = {
             .override_redirect = 1,
             .background_pixmap = XCB_BACK_PIXMAP_PARENT_RELATIVE,
-            .background_pixel = alloc_color("#00FF00"),
             .event_mask = XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_EXPOSURE,
             .cursor = cursors[CurNormal],
         };
@@ -173,7 +168,7 @@ void init_bar_window(Monitor *monitor, uint8_t barheight) {
         cookie = xcb_create_window_aux_checked(conn, screen->root_depth,
                                                win, screen->root,
                                                m->mx, m->my,
-                                               m->mw, barheight,
+                                               m->mw, height,
                                                0,
                                                class, screen->root_visual,
                                                value_mask, &value);
@@ -202,9 +197,14 @@ void init_bar_window(Monitor *monitor, uint8_t barheight) {
         cairo_surface_t *surface;
         surface = cairo_xcb_surface_create(conn, win,
                                            global.visual,
-                                           m->mw, barheight);
+                                           m->mw, height);
         m->surface = surface;
         m->cr = cairo_create(surface);
+
+        m->wx = m->mx;
+        m->wy = m->my + height;
+        m->ww = m->mw;
+        m->wh = m->mh - height;
 
         xcb_aux_sync(conn);
     }
@@ -219,6 +219,7 @@ PangoInit init_pango(char **families, int length, uint8_t size) {
 
     PangoInit init = { .layout = layout, .barheight = 0 };
 
+    uint8_t padding = 0;
     uint8_t bh = 0;
 
     for (int i = 0; i < length; i++) {
@@ -237,14 +238,16 @@ PangoInit init_pango(char **families, int length, uint8_t size) {
         int descent = PANGO_PIXELS(pango_font_metrics_get_descent(metrics));
 
         int inner_bh = MIN(height, ascent + descent);
+        padding = MIN(inner_bh, bh);
         bh = MAX(inner_bh, bh);
 
         free(desc);
         free(metrics);
     }
 
-    pango_layout_set_attributes(layout, list);
+    init.lrpad = padding / 2 - 1;
 
+    pango_layout_set_attributes(layout, list);
 
     if (bh % 2) {
         bh += 1;
@@ -258,13 +261,14 @@ PangoInit init_pango(char **families, int length, uint8_t size) {
 int main() {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
-    if (!conn) {
+    if (!conn || xcb_connection_has_error(conn)) {
         die("connection:");
     }
 
     xcb_screen_t *screen = check_other_wm(conn);
-    xcb_visualtype_t *visual = find_visual(screen, screen->root_visual);
     Monitor *monitor = monitor_scan(conn);
+    print_monitor_info(monitor);
+    xcb_visualtype_t *visual = find_visual(screen, screen->root_visual);
     int length = LENGTH(font_families);
     PangoInit init = init_pango(font_families, length, font_size);
 
@@ -272,17 +276,19 @@ int main() {
     global.screen = screen;
     global.visual = visual;
     global.monitor = monitor;
+    global.lrpad = init.lrpad;
     global.barheight = init.barheight;
     global.layout = init.layout;
     global.running = true;
 
+    global.color = ecalloc(LENGTH(colors), sizeof(PangoColor *));
+    for (int i = 0; i < LENGTH(colors); i++) {
+        global.color[i] = create_scheme(colors[i], ColLast);
+    }
+
     init_bar_window(monitor, init.barheight);
-
-
-    print_monitor_info(monitor);
-
     init_cursors();
-    update_monitor_bar();
+    update_monitor_bar(monitor, init.layout, init.barheight, init.lrpad);
 
     xcb_flush(conn);
 

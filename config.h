@@ -2,7 +2,6 @@
 
 #include "global.h"
 #include "utils.h"
-#include "zswm.h"
 
 #ifndef __ZS_WM_CONFIG__
 #define __ZS_WM_CONFIG__
@@ -25,6 +24,10 @@ static const char col_gray2[] = "#444444";
 static const char col_gray3[] = "#bbbbbb";
 static const char col_gray4[] = "#eeeeee";
 static const char col_cyan[]  = "#005577";
+static const char *colors[SchemeLast][ColLast] = {
+    [SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+    [SchemeSel]  = { col_gray4, col_cyan, col_cyan },
+};
 
 static const char dmenufont[] = "Terminus:size=10";
 static const char dmenumon[2] = "0";

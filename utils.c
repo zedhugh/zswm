@@ -9,7 +9,6 @@
 
 #include "global.h"
 #include "utils.h"
-#include "zswm.h"
 
 double get_time() {
     struct timeval tv;
@@ -81,7 +80,7 @@ xcb_visualtype_t * find_visual(xcb_screen_t *screen , xcb_visualid_t visualid) {
     xcb_depth_iterator_t depth_iter;
     depth_iter = xcb_screen_allowed_depths_iterator(screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-        xcb_visualtype_iterator_t  visual_iter;
+        xcb_visualtype_iterator_t visual_iter;
         visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
         if (visual_iter.data->visual_id == visualid) {
             return visual_iter.data;

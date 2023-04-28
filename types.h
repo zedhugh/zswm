@@ -1,0 +1,62 @@
+#include <stdbool.h>
+#include <stdint.h>
+#include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
+
+#include "cairo.h"
+#include "pango/pango-color.h"
+#include "pango/pango-layout.h"
+
+#ifndef __ZS_WM_TYPES__
+#define __ZS_WM_TYPES__
+
+typedef union {
+    int i;
+    unsigned int ui;
+    float f;
+    const void *v;
+} Arg;
+
+typedef struct {
+    PangoColor pango_color;
+    uint32_t xcb_color_pixel;
+} Color;
+
+typedef struct Monitor Monitor;
+struct Monitor {
+    /* monitor rectangle */
+    int16_t mx, my;
+    uint16_t mw, mh;
+
+    /* window rectangle */
+    int16_t wx, wy;
+    uint16_t ww, wh;
+
+    xcb_window_t barwin;
+    cairo_surface_t *surface;
+    cairo_t *cr;
+
+    Monitor *next;
+};
+
+/* cursor for window manager */
+enum { CurNormal, CurResize, CurMove, CurLast };
+
+enum { SchemeNorm, SchemeSel, SchemeLast }; /* color schemes */
+enum { ColFg, ColBg, ColBorder, ColLast }; /* color scheme index */
+
+typedef struct {
+    bool running;
+    uint8_t barheight;
+    uint8_t lrpad;              /* left and right padding for text */
+    xcb_connection_t *conn;
+    xcb_screen_t *screen;
+    xcb_visualtype_t *visual;
+    xcb_key_symbols_t *keysymbol;
+    xcb_cursor_t cursors[CurLast];
+    Monitor *monitor;
+    PangoLayout *layout;
+    Color **color;
+} zswm_global_t;
+
+#endif

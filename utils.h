@@ -1,8 +1,4 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <xcb/xproto.h>
-
-#include "zswm.h"
+#include "types.h"
 
 #ifndef __ZS_WM_UTILS__
 #define __ZS_WM_UTILS__

@@ -1,15 +1,10 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <xcb/xcb.h>
-#include <xcb/xcb_aux.h>
-#include <xcb/xcb_event.h>
-#include <xcb/xcb_keysyms.h>
-
 #include "config.h"
 #include "event.h"
 #include "utils.h"
-#include "zswm.h"
+#include <stdint.h>
+#include <xcb/xcb_aux.h>
+#include <xcb/xcb_event.h>
+#include <xcb/xproto.h>
 
 static void create_notify(xcb_create_notify_event_t *ev) {
     logger("window: %d, parent: %d, root: %d\n",
@@ -23,18 +18,30 @@ static void map_request(xcb_map_request_event_t *ev) {
     xcb_map_subwindows(global.conn, ev->window);
 
     if (ev->parent == global.screen->root) {
-        uint32_t value_list[] = {
-            XCB_EVENT_MASK_ENTER_WINDOW,
-            XCB_EVENT_MASK_LEAVE_WINDOW,
+        xcb_cw_t change_mask = XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL;
+        xcb_change_window_attributes_value_list_t value_list = {
+            .event_mask = XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
+            .border_pixel = global.color[SchemeNorm][ColBorder].xcb_color_pixel,
         };
         xcb_change_window_attributes(global.conn,
                                      ev->window,
                                      XCB_CW_EVENT_MASK,
-                                     value_list);
-        xcb_configure_window(global.conn,
-                             ev->window,
-                             XCB_CONFIG_WINDOW_Y,
-                             &global.barheight);
+                                     &value_list);
+
+        xcb_config_window_t config_mask = XCB_CONFIG_WINDOW_X |
+            XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
+            XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        xcb_configure_window_value_list_t window_config = {
+            .x = global.monitor->wx,
+            .y = global.monitor->wy,
+            .width = global.monitor->ww,
+            .height = global.monitor->wh,
+            .border_width = 1,
+        };
+        xcb_configure_window_aux(global.conn,
+                                 ev->window,
+                                 config_mask,
+                                 &window_config);
     }
 
     xcb_flush(global.conn);
