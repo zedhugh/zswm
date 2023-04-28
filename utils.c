@@ -69,7 +69,8 @@ uint32_t alloc_color(const char *color) {
     xcb_aux_parse_color(color, &red, &green, &blue);
     xcb_colormap_t cmap = global.screen->default_colormap;
     cookie = xcb_alloc_color(global.conn, cmap, red, green, blue);
-    reply= xcb_alloc_color_reply(global.conn, cookie, NULL);
+
+    reply = xcb_alloc_color_reply(global.conn, cookie, NULL);
     uint32_t color_pixel = reply->pixel;
 
     free(reply);

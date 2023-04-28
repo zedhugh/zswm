@@ -11,26 +11,18 @@
 #include "config.h"
 #include "draw.h"
 #include "event.h"
-#include "pango/pango-attributes.h"
-#include "pango/pango-layout.h"
-#include "pango/pangocairo.h"
-#include "pango/pango-types.h"
 #include "utils.h"
 
 zswm_global_t global;
 
-typedef struct {
-    uint8_t lrpad;
-    uint8_t barheight;
-    PangoLayout *layout;
-} PangoInit;
-
 static void init_cursors(void);
-static PangoInit init_pango(char **families, int length, uint8_t size);
 static void init_bar_window(Monitor *monitor, uint8_t barheight);
 static xcb_screen_t *check_other_wm(xcb_connection_t *connection);
 static void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s);
 static Monitor *monitor_scan(xcb_connection_t *conn);
+static void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]);
+static void update_monitor_bar(Monitor *monitor);
+
 
 xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
@@ -92,6 +84,29 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
     }
 
     return monitor;
+}
+
+void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]) {
+    int x = 0;
+    Color *color;
+
+    double start, end;
+    start = get_time();
+    for (int i = 0; i < LENGTH(tags); i++) {
+        color = scheme[!(i % 2) ? SchemeSel : SchemeNorm];
+        const char *tag = tags[i];
+        draw_text(m->cr, tag, color, x);
+        x += get_text_width(tag);
+    }
+    end = get_time();
+
+    printf("time: %lf\n", end - start);
+}
+
+void update_monitor_bar(Monitor *monitor) {
+    for (Monitor *mon = monitor; mon; mon = mon->next) {
+        draw_tags(mon, global.color);
+    }
 }
 
 void print_monitor_info(Monitor *m) {
@@ -210,54 +225,6 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
     }
 }
 
-PangoInit init_pango(char **families, int length, uint8_t size) {
-    PangoFontMap *fontmap = pango_cairo_font_map_new();
-    PangoContext *context = pango_font_map_create_context(fontmap);
-    PangoLayout *layout = pango_layout_new(context);
-    PangoLanguage *lang = pango_context_get_language(context);
-    PangoAttrList *list = pango_attr_list_new();
-
-    PangoInit init = { .layout = layout, .barheight = 0 };
-
-    uint8_t padding = 0;
-    uint8_t bh = 0;
-
-    for (int i = 0; i < length; i++) {
-        PangoFontDescription *desc = pango_font_description_new();
-        pango_font_description_set_family(desc, families[i]);
-        pango_font_description_set_size(desc, size * PANGO_SCALE);
-
-        PangoAttribute *attr = pango_attr_font_desc_new(desc);
-        pango_attr_list_insert(list, attr);
-
-        PangoFontMetrics *metrics;
-        metrics =pango_context_get_metrics(context, desc, lang);
-
-        int height = PANGO_PIXELS(pango_font_metrics_get_height(metrics));
-        int ascent = PANGO_PIXELS(pango_font_metrics_get_ascent(metrics));
-        int descent = PANGO_PIXELS(pango_font_metrics_get_descent(metrics));
-
-        int inner_bh = MIN(height, ascent + descent);
-        padding = MIN(inner_bh, bh);
-        bh = MAX(inner_bh, bh);
-
-        free(desc);
-        free(metrics);
-    }
-
-    init.lrpad = padding / 2 - 1;
-
-    pango_layout_set_attributes(layout, list);
-
-    if (bh % 2) {
-        bh += 1;
-    }
-
-    init.barheight = bh;
-
-    return init;
-}
-
 int main() {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -269,31 +236,31 @@ int main() {
     Monitor *monitor = monitor_scan(conn);
     print_monitor_info(monitor);
     xcb_visualtype_t *visual = find_visual(screen, screen->root_visual);
-    int length = LENGTH(font_families);
-    PangoInit init = init_pango(font_families, length, font_size);
+
+    init_pango_layout(fontfamilies, LENGTH(fontfamilies), fontsize);
 
     global.conn = conn;
     global.screen = screen;
     global.visual = visual;
     global.monitor = monitor;
-    global.lrpad = init.lrpad;
-    global.barheight = init.barheight;
-    global.layout = init.layout;
     global.running = true;
 
-    global.color = ecalloc(LENGTH(colors), sizeof(PangoColor *));
-    for (int i = 0; i < LENGTH(colors); i++) {
-        global.color[i] = create_scheme(colors[i], ColLast);
+    xcb_colormap_t cmap = screen->default_colormap;
+    for (int i = 0; i < SchemeLast; i++) {
+        for (int j = 0; j < ColLast; j++) {
+            global.color[i][j] = create_color(conn, cmap, colors[i][j]);
+        }
     }
 
-    init_bar_window(monitor, init.barheight);
+    init_bar_window(monitor, get_barheight());
     init_cursors();
-    update_monitor_bar(monitor, init.layout, init.barheight, init.lrpad);
+    update_monitor_bar(monitor);
 
     xcb_flush(conn);
 
     grabkeys();
     xcb_generic_event_t *event;
+
     while (global.running && (event = xcb_wait_for_event(conn))) {
         event_handle(event);
     }

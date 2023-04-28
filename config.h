@@ -13,9 +13,9 @@ typedef struct {
     const Arg arg;
 } Key;
 
-static char *font_families[] = { "Emacs Simsun", "Terminus" };
+static char *fontfamilies[] = { "Emacs Simsun", "Terminus" };
 /* static char *font_families[] = { "Terminus", "Emacs Simsun" }; */
-static int font_size = 12;
+static int fontsize = 12;
 
 static char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 

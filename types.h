@@ -47,16 +47,13 @@ enum { ColFg, ColBg, ColBorder, ColLast }; /* color scheme index */
 
 typedef struct {
     bool running;
-    uint8_t barheight;
-    uint8_t lrpad;              /* left and right padding for text */
     xcb_connection_t *conn;
     xcb_screen_t *screen;
     xcb_visualtype_t *visual;
     xcb_key_symbols_t *keysymbol;
     xcb_cursor_t cursors[CurLast];
     Monitor *monitor;
-    PangoLayout *layout;
-    Color **color;
+    Color color[SchemeLast][ColLast];
 } zswm_global_t;
 
 #endif
