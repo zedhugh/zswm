@@ -1,4 +1,5 @@
 #include "config.h"
+#include "draw.h"
 #include "event.h"
 #include "utils.h"
 #include <stdint.h>
@@ -91,6 +92,18 @@ static void button_press(xcb_button_press_event_t *ev) {
     const char *format = "root: %d, event: %d, child: %d, barwin: %d\n";
     printf(format, ev->root, ev->event, ev->child, global.monitors->barwin);
     ClickType click = ClkRootWin;
+    if (ev->event == global.current_monitor->barwin) {
+        int i, x;
+        i = x = 0;
+        do {
+            x += get_text_width(tags[i]);
+        } while (ev->event_x >= x && (++i) < LENGTH(tags));
+
+        printf("i: %d, x: %d, ev x: %d, root x: %d\n", 1 << i, x, ev->event_x, ev->root_x);
+        if (i < LENGTH(tags)) {
+            global.current_monitor->seltags = 1 << i;
+        }
+    }
 }
 
 static void client_message(xcb_client_message_event_t *ev) {

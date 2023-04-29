@@ -19,6 +19,8 @@ static int fontsize = 12;
 
 static char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 
+#define TAGMASK ((1 << LENGTH(tags)) - 1)
+
 static const char col_gray1[] = "#222222";
 static const char col_gray2[] = "#444444";
 static const char col_gray3[] = "#bbbbbb";

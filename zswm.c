@@ -91,7 +91,8 @@ void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]) {
     Color *color;
 
     for (int i = 0; i < LENGTH(tags); i++) {
-        uint16_t sel = m->seltags & (1 << i);
+        uint16_t sel = (m->seltags >> i) & 1;
+        printf("index: %d, sel: %d\n", i, sel);
         color = scheme[sel ? SchemeSel : SchemeNorm];
         const char *tag = tags[i];
         draw_text(m->cr, tag, color, x);
@@ -102,7 +103,9 @@ void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]) {
 void update_monitor_bar(Monitor *monitor) {
     for (Monitor *mon = monitor; mon; mon = mon->next) {
         draw_tags(mon, global.color);
+        cairo_surface_flush(mon->surface);
     }
+    xcb_flush(global.conn);
 }
 
 void print_monitor_info(Monitor *m) {
