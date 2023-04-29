@@ -34,8 +34,4 @@ build: prepare
 	@cmake --build $(BUILD_DIR)
 	@cp $(BUILD_DIR)/$(TARGET_NAME) $(TARGET_NAME)
 
-CFLAGS := $(shell pkg-config pangocairo -libs -cflags)
-test:
-	$(CC) -g test.c -lcairo -lfontconfig $(CFLAGS); ./a.out; file test.png
-
-.PHONY: clean run wm prepare build test
+.PHONY: clean run wm prepare build

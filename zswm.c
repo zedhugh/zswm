@@ -5,6 +5,7 @@
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xinerama.h>
+#include <xcb/xproto.h>
 
 #include "cairo.h"
 #include "cairo-xcb.h"
@@ -22,7 +23,6 @@ static void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s);
 static Monitor *monitor_scan(xcb_connection_t *conn);
 static void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]);
 static void update_monitor_bar(Monitor *monitor);
-
 
 xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
     const xcb_setup_t *setup = xcb_get_setup(connection);
@@ -58,7 +58,7 @@ void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
 }
 
 Monitor *monitor_scan(xcb_connection_t *conn) {
-    Monitor *monitor, *temp_monitor;
+    Monitor *monitors, *temp_monitor;
 
     xcb_xinerama_query_screens_cookie_t cookie;
     xcb_xinerama_query_screens_reply_t *reply;
@@ -72,35 +72,31 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
         die("no monitor finded");
     }
 
-    monitor = temp_monitor = ecalloc(1, sizeof(Monitor));
-    copy_screen_info(monitor, screen_info);
-
     int count = xcb_xinerama_query_screens_screen_info_length(reply);
-
-    for (int i = 1; i < count; i++) {
-        temp_monitor->next = ecalloc(1, sizeof(Monitor));
-        copy_screen_info(temp_monitor->next, &screen_info[i]);
+    for (int i = 0; i < count; i++) {
+        temp_monitor = ecalloc(1, sizeof(Monitor));
+        copy_screen_info(temp_monitor, &screen_info[i]);
+        temp_monitor->seltags = 1;
+        if (!i) {
+            monitors = temp_monitor;
+        }
         temp_monitor = temp_monitor->next;
     }
 
-    return monitor;
+    return monitors;
 }
 
 void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]) {
     int x = 0;
     Color *color;
 
-    double start, end;
-    start = get_time();
     for (int i = 0; i < LENGTH(tags); i++) {
-        color = scheme[!(i % 2) ? SchemeSel : SchemeNorm];
+        uint16_t sel = m->seltags & (1 << i);
+        color = scheme[sel ? SchemeSel : SchemeNorm];
         const char *tag = tags[i];
         draw_text(m->cr, tag, color, x);
         x += get_text_width(tag);
     }
-    end = get_time();
-
-    printf("time: %lf\n", end - start);
 }
 
 void update_monitor_bar(Monitor *monitor) {
@@ -123,7 +119,6 @@ void grabkeys(void) {
     xcb_keycode_t key = XCB_GRAB_ANY;
     uint16_t modifiers = XCB_MOD_MASK_ANY;
     xcb_ungrab_key(conn, key, root, modifiers);
-    xcb_flush(conn);
 
     global.keysymbol = xcb_key_symbols_alloc(conn);
 
@@ -131,15 +126,18 @@ void grabkeys(void) {
         xcb_key_symbols_t *syms = global.keysymbol;
         xcb_keysym_t keysym = keys[i].keysym;
         xcb_keycode_t *keycodesPtr = xcb_key_symbols_get_keycode(syms, keysym);
-        xcb_grab_key(conn,
-                     XCB_GRAB_ANY,
-                     root,
-                     keys[i].modifier,
-                     *keycodesPtr,
-                     XCB_GRAB_MODE_ASYNC,
-                     XCB_GRAB_MODE_ASYNC);
+        xcb_void_cookie_t cookie = xcb_grab_key(conn, XCB_GRAB_ANY, root,
+                                                keys[i].modifier, *keycodesPtr,
+                                                XCB_GRAB_MODE_ASYNC,
+                                                XCB_GRAB_MODE_ASYNC);
+        xcb_generic_error_t *error = xcb_request_check(conn, cookie);
+        if ((error)) {
+            xcb_disconnect(conn);
+            die("cannot grap key");
+        }
+
+        xcb_aux_sync(conn);
     }
-    xcb_flush(conn);
 }
 
 void init_cursors() {
@@ -151,10 +149,12 @@ void init_cursors() {
     size_t name_len = strlen(cursorfont);
     xcb_open_font_checked(conn, font, name_len, cursorfont);
 
+    int cursor[] = { XC_left_ptr, XC_sizing, XC_fleur };
+
     for (int i = CurNormal; i < CurLast; i++) {
         xcb_cursor_t temp_cursor = xcb_generate_id(conn);
         xcb_create_glyph_cursor_checked(conn, temp_cursor, font, font,
-                                        XC_left_ptr, XC_left_ptr + 1,
+                                        cursor[i], cursor[i] + 1,
                                         0, 0, 0, 0, 0, 0);
         cursors[i] = temp_cursor;
     }
@@ -233,8 +233,8 @@ int main() {
     }
 
     xcb_screen_t *screen = check_other_wm(conn);
-    Monitor *monitor = monitor_scan(conn);
-    print_monitor_info(monitor);
+    Monitor *monitors = monitor_scan(conn);
+    print_monitor_info(monitors);
     xcb_visualtype_t *visual = find_visual(screen, screen->root_visual);
 
     init_pango_layout(fontfamilies, LENGTH(fontfamilies), fontsize);
@@ -242,7 +242,8 @@ int main() {
     global.conn = conn;
     global.screen = screen;
     global.visual = visual;
-    global.monitor = monitor;
+    global.monitors = monitors;
+    global.current_monitor = monitors;
     global.running = true;
 
     xcb_colormap_t cmap = screen->default_colormap;
@@ -252,17 +253,18 @@ int main() {
         }
     }
 
-    init_bar_window(monitor, get_barheight());
+    init_bar_window(monitors, get_barheight());
     init_cursors();
-    update_monitor_bar(monitor);
+    update_monitor_bar(monitors);
 
     xcb_flush(conn);
 
     grabkeys();
-    xcb_generic_event_t *event;
+    xcb_generic_event_t *event = NULL;
 
     while (global.running && (event = xcb_wait_for_event(conn))) {
         event_handle(event);
+        update_monitor_bar(monitors);
     }
 
     xcb_disconnect(conn);

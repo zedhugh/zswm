@@ -32,6 +32,8 @@ struct Monitor {
     int16_t wx, wy;
     uint16_t ww, wh;
 
+    uint16_t seltags;
+
     xcb_window_t barwin;
     cairo_surface_t *surface;
     cairo_t *cr;
@@ -44,6 +46,7 @@ enum { CurNormal, CurResize, CurMove, CurLast };
 
 enum { SchemeNorm, SchemeSel, SchemeLast }; /* color schemes */
 enum { ColFg, ColBg, ColBorder, ColLast }; /* color scheme index */
+typedef enum { ClkTagBar, ClkRootWin } ClickType;
 
 typedef struct {
     bool running;
@@ -52,7 +55,8 @@ typedef struct {
     xcb_visualtype_t *visual;
     xcb_key_symbols_t *keysymbol;
     xcb_cursor_t cursors[CurLast];
-    Monitor *monitor;
+    Monitor *monitors;
+    Monitor *current_monitor;
     Color color[SchemeLast][ColLast];
 } zswm_global_t;
 

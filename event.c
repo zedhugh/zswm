@@ -2,6 +2,7 @@
 #include "event.h"
 #include "utils.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xproto.h>
@@ -32,10 +33,10 @@ static void map_request(xcb_map_request_event_t *ev) {
             XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
         xcb_configure_window_value_list_t window_config = {
-            .x = global.monitor->wx,
-            .y = global.monitor->wy,
-            .width = global.monitor->ww,
-            .height = global.monitor->wh,
+            .x = global.monitors->wx,
+            .y = global.monitors->wy,
+            .width = global.monitors->ww,
+            .height = global.monitors->wh,
             .border_width = 1,
         };
         xcb_configure_window_aux(global.conn,
@@ -87,8 +88,9 @@ static void keypress(xcb_key_press_event_t *ev) {
 }
 
 static void button_press(xcb_button_press_event_t *ev) {
-    const char *format = "root: %d, event: %d, child: %d\n";
-    logger(format, ev->root, ev->event, ev->child);
+    const char *format = "root: %d, event: %d, child: %d, barwin: %d\n";
+    printf(format, ev->root, ev->event, ev->child, global.monitors->barwin);
+    ClickType click = ClkRootWin;
 }
 
 static void client_message(xcb_client_message_event_t *ev) {
@@ -100,7 +102,7 @@ static void destory_notify(xcb_destroy_notify_event_t *ev) {
 
 static void motion_notify(xcb_motion_notify_event_t *ev) {
     if (ev->root != global.screen->root) return;
-    /* logger("notion notify: x: %d,\t y: %d\n", ev->root_x, ev->root_y); */
+    printf("motion notify: x: %d,\t y: %d\n", ev->root_x, ev->root_y);
 }
 
 static void enter_notify(xcb_enter_notify_event_t *ev) {
