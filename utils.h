@@ -19,4 +19,6 @@ uint32_t alloc_color(const char *color);
 
 xcb_visualtype_t *find_visual(xcb_screen_t *screen , xcb_visualid_t visualid);
 
+Monitor *xy_to_monitor(Monitor *monitors, int x, int y);
+
 #endif

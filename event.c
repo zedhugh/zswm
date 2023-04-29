@@ -89,8 +89,6 @@ static void keypress(xcb_key_press_event_t *ev) {
 }
 
 static void button_press(xcb_button_press_event_t *ev) {
-    const char *format = "root: %d, event: %d, child: %d, barwin: %d\n";
-    printf(format, ev->root, ev->event, ev->child, global.monitors->barwin);
     ClickType click = ClkRootWin;
     if (ev->event == global.current_monitor->barwin) {
         int i, x;
@@ -99,7 +97,6 @@ static void button_press(xcb_button_press_event_t *ev) {
             x += get_text_width(tags[i]);
         } while (ev->event_x >= x && (++i) < LENGTH(tags));
 
-        printf("i: %d, x: %d, ev x: %d, root x: %d\n", 1 << i, x, ev->event_x, ev->root_x);
         if (i < LENGTH(tags)) {
             global.current_monitor->seltags = 1 << i;
         }
@@ -116,6 +113,9 @@ static void destory_notify(xcb_destroy_notify_event_t *ev) {
 static void motion_notify(xcb_motion_notify_event_t *ev) {
     if (ev->root != global.screen->root) return;
     printf("motion notify: x: %d,\t y: %d\n", ev->root_x, ev->root_y);
+
+    Monitor *mon = xy_to_monitor(global.monitors, ev->root_x, ev->root_y);
+    global.current_monitor = mon;
 }
 
 static void enter_notify(xcb_enter_notify_event_t *ev) {

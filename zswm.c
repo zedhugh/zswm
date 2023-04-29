@@ -31,7 +31,7 @@ xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
     xcb_screen_t *screen = iter.data;
 
     uint32_t mask = XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_ENTER_WINDOW |
-        /* XCB_EVENT_MASK_POINTER_MOTION | */
+        XCB_EVENT_MASK_POINTER_MOTION |
         XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
         XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 

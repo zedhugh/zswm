@@ -154,3 +154,20 @@ Color create_color(xcb_connection_t *conn, xcb_colormap_t cmap, const char *colo
 
     return color;
 }
+
+Monitor *xy_to_monitor(Monitor *monitors, int x, int y) {
+    int16_t mx, my;
+    uint16_t mw, mh;
+
+    for (Monitor *m = monitors; m; m = m->next) {
+        mx = m->mx;
+        my = m->my;
+        mw = m->mw;
+        mh = m->mh;
+        if (x >= mx && x <= mx + mw && y >= my && y <= my + mh) {
+            return m;
+        }
+    }
+
+    return monitors;
+}
