@@ -50,6 +50,7 @@ typedef enum { ClkTagBar, ClkRootWin } ClickType;
 
 typedef struct {
     bool running;
+    bool restart;
     xcb_connection_t *conn;
     xcb_screen_t *screen;
     xcb_visualtype_t *visual;

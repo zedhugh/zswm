@@ -1,6 +1,7 @@
 #include <X11/cursorfont.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
@@ -228,7 +229,7 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
     }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
     if (!conn || xcb_connection_has_error(conn)) {
@@ -270,6 +271,7 @@ int main() {
         update_monitor_bar(monitors);
     }
 
+    if (global.restart) execvp(argv[0], argv);
     xcb_disconnect(conn);
 
     return EXIT_SUCCESS;

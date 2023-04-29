@@ -57,11 +57,15 @@ static const char *dmenucmd[] = {
 
 static void quit(const Arg *arg) {
     global.running = false;
+    if (arg->i) {
+        global.restart = 1;
+    }
 }
 
 static Key keys[] = {
-    {XCB_MOD_MASK_4, XK_p, spawn, { .v = dmenucmd } },
-    {XCB_MOD_MASK_4, XK_q, quit, { .v = NULL } },
+    { XCB_MOD_MASK_4, XK_p, spawn, { .v = dmenucmd } },
+    { XCB_MOD_MASK_4, XK_q, quit, { .v = NULL } },
+    { XCB_MOD_MASK_4, XK_r, quit, { .i = 1 } },
 };
 
 #endif
