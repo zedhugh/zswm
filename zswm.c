@@ -59,7 +59,7 @@ void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s) {
 }
 
 Monitor *monitor_scan(xcb_connection_t *conn) {
-    Monitor *monitors, *temp_monitor;
+    Monitor *monitors, *prev_mon;
 
     xcb_xinerama_query_screens_cookie_t cookie;
     xcb_xinerama_query_screens_reply_t *reply;
@@ -75,13 +75,16 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
 
     int count = xcb_xinerama_query_screens_screen_info_length(reply);
     for (int i = 0; i < count; i++) {
-        temp_monitor = ecalloc(1, sizeof(Monitor));
-        copy_screen_info(temp_monitor, &screen_info[i]);
-        temp_monitor->seltags = 1;
+        Monitor *m = ecalloc(1, sizeof(Monitor));
+        copy_screen_info(m, &screen_info[i]);
+        m->seltags = 1;
+
         if (!i) {
-            monitors = temp_monitor;
+            monitors = m;
+        } else {
+            prev_mon->next = m;
         }
-        temp_monitor = temp_monitor->next;
+        prev_mon = m;
     }
 
     return monitors;
@@ -93,7 +96,6 @@ void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]) {
 
     for (int i = 0; i < LENGTH(tags); i++) {
         uint16_t sel = (m->seltags >> i) & 1;
-        printf("index: %d, sel: %d\n", i, sel);
         color = scheme[sel ? SchemeSel : SchemeNorm];
         const char *tag = tags[i];
         draw_text(m->cr, tag, color, x);
