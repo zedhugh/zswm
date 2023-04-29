@@ -23,7 +23,7 @@ static void set_cairo_color(cairo_t *cr, PangoColor color);
 /*****************************************************************************/
 static PangoLayout *layout;
 static PangoAttrList *attrs;
-static uint8_t barheight;
+static uint8_t barheight = 0;
 static uint8_t lrpad;
 
 /*****************************************************************************/
@@ -68,13 +68,14 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
 /*                              public functions                             */
 /*****************************************************************************/
 void init_pango_layout(char **families, size_t length, uint8_t size) {
+    if (barheight) return;
+
     PangoFontMap *fontmap = pango_cairo_font_map_new();
     PangoContext *context = pango_font_map_create_context(fontmap);
     PangoLanguage *lang = pango_context_get_language(context);
 
     layout = pango_layout_new(context);
     attrs = pango_attr_list_new();
-    barheight = 0;
 
     for (int i = 0; i < length; i++) {
         PangoFontDescription *desc = pango_font_description_new();

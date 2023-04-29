@@ -34,4 +34,12 @@ build: prepare
 	@cmake --build $(BUILD_DIR)
 	@cp $(BUILD_DIR)/$(TARGET_NAME) $(TARGET_NAME)
 
-.PHONY: clean run wm prepare build
+install: $(TARGET_NAME)
+	@cp $(BUILD_DIR)/$(TARGET_NAME) /home/zedhugh/.local/bin/$(TARGET_NAME)
+
+uninstall:
+	${RM} -r /home/zedhugh/.local/bin/$(TARGET_NAME)
+
+reinstall: uninstall install
+
+.PHONY: clean run wm prepare build install uninstall reinstall

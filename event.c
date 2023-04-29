@@ -18,29 +18,26 @@ static void map_request(xcb_map_request_event_t *ev) {
            ev->window, ev->parent, global.screen->root);
     xcb_map_window(global.conn, ev->window);
     xcb_map_subwindows(global.conn, ev->window);
-
     if (ev->parent == global.screen->root) {
         xcb_cw_t change_mask = XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL;
-        xcb_change_window_attributes_value_list_t value_list = {
+        xcb_params_cw_t params = {
             .event_mask = XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
-            .border_pixel = global.color[SchemeNorm][ColBorder].xcb_color_pixel,
+            .border_pixel = global.color[SchemeSel][ColBorder].xcb_color_pixel,
         };
-        xcb_change_window_attributes(global.conn,
-                                     ev->window,
-                                     XCB_CW_EVENT_MASK,
-                                     &value_list);
+        xcb_aux_change_window_attributes(global.conn, ev->window, change_mask, &params);
 
         xcb_config_window_t config_mask = XCB_CONFIG_WINDOW_X |
             XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
             XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        xcb_configure_window_value_list_t window_config = {
-            .x = global.monitors->wx,
-            .y = global.monitors->wy,
-            .width = global.monitors->ww,
-            .height = global.monitors->wh,
-            .border_width = 1,
+        int border = 1;
+        xcb_params_configure_window_t window_config = {
+            .x = global.current_monitor->wx,
+            .y = global.current_monitor->wy,
+            .width = global.current_monitor->ww - (border * 2),
+            .height = global.current_monitor->wh - (border * 2),
+            .border_width = border,
         };
-        xcb_configure_window_aux(global.conn,
+        xcb_aux_configure_window(global.conn,
                                  ev->window,
                                  config_mask,
                                  &window_config);
@@ -58,19 +55,31 @@ static void configure_request(xcb_configure_request_event_t *ev) {
            ev->window, ev->parent, global.screen->root);
     logger("x: %d, y: %d, width: %d, height: %d\n",
            ev->x, ev->y, ev->width, ev->height);
-    xcb_params_configure_window_t params = {
-        .x = ev->x,
-        .y = ev->y,
-        .width = ev->width,
-        .height = ev->height,
-        .border_width = ev->border_width,
-        .sibling = ev->sibling,
-        .stack_mode = ev->stack_mode,
-    };
 
-    xcb_window_t window = ev->window;
-    uint16_t mask = ev->value_mask;
-    xcb_aux_configure_window(global.conn, window, mask, &params);
+    xcb_cw_t mask = XCB_CW_BORDER_PIXEL;
+    xcb_params_cw_t params = {
+        .border_pixel = global.color[SchemeSel][ColBorder].xcb_color_pixel,
+    };
+    xcb_aux_change_window_attributes(global.conn, ev->window, mask, &params);
+
+    xcb_config_window_t config_mask = XCB_CONFIG_WINDOW_X |
+        XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
+        XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH |
+        XCB_CONFIG_WINDOW_STACK_MODE;
+    int border = 1;
+    xcb_params_configure_window_t window_config = {
+        .x = global.current_monitor->wx,
+        .y = global.current_monitor->wy,
+        .width = global.current_monitor->ww - (border * 2),
+        .height = global.current_monitor->wh - (border * 2),
+        .border_width = border,
+        .stack_mode = XCB_STACK_MODE_ABOVE,
+    };
+    xcb_aux_configure_window(global.conn,
+                             ev->window,
+                             config_mask,
+                             &window_config);
+
     xcb_flush(global.conn);
 }
 
@@ -119,32 +128,19 @@ static void motion_notify(xcb_motion_notify_event_t *ev) {
 }
 
 static void enter_notify(xcb_enter_notify_event_t *ev) {
-    const char *pos_fmt = "x: %d,\t y: %d,\t root: %d\n";
-    const char *win_fmt = "root: %d,\t event: %d,\t child: %d\n";
-    logger(pos_fmt, ev->root_x, ev->root_y, global.screen->root);
-    logger(win_fmt, ev->root, ev->event, ev->root);
-
     if (ev->event == global.screen->root) return;
-
-    uint16_t value_mask = XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
-        XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-    xcb_configure_window_value_list_t value_list = {
-        .y = 20,
-        .width = global.screen->width_in_pixels - 2,
-        .height = global.screen->height_in_pixels - 2 - 20,
-        .border_width = 1,
-    };
 
     xcb_connection_t *c = global.conn;
     xcb_window_t window = ev->event;
-    xcb_configure_window_aux(c, window, value_mask, &value_list);
     xcb_get_geometry_cookie_t cookie = xcb_get_geometry(c, window);
     xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(c, cookie, NULL);
     free(reply);
 
-    uint32_t blue = alloc_color("#FF00FF");
     uint32_t mask = XCB_CW_BORDER_PIXEL;
-    xcb_change_window_attributes(c, window, mask, &blue);
+    xcb_change_window_attributes_value_list_t win_attr = {
+        .border_pixel = alloc_color("#FF00FF"),
+    };
+    xcb_change_window_attributes_aux(c, window, mask, &win_attr);
 
     xcb_flush(global.conn);
 }
@@ -152,11 +148,6 @@ static void enter_notify(xcb_enter_notify_event_t *ev) {
 static void leave_notify(xcb_leave_notify_event_t *ev) {
     uint32_t value_mask = XCB_CW_BORDER_PIXEL;
     uint32_t value_list[] = { 0 };
-
-    const char *pos_fmt = "x: %d,\t y: %d,\t root: %d\n";
-    const char *win_fmt = "root: %d,\t event: %d,\t child: %d\n";
-    logger(pos_fmt, ev->root_x, ev->root_y, global.screen->root);
-    logger(win_fmt, ev->root, ev->event, ev->root);
 
     xcb_connection_t *c = global.conn;
     xcb_change_window_attributes(c, ev->root, value_mask, value_list);
@@ -167,7 +158,10 @@ static void leave_notify(xcb_leave_notify_event_t *ev) {
 void event_handle(xcb_generic_event_t *event) {
     uint8_t event_type = XCB_EVENT_RESPONSE_TYPE(event);
     const char *label = xcb_event_get_label(event_type);
-    logger("---------------- %s ---------------------\n", label);
+    if (event_type != XCB_MOTION_NOTIFY && event_type != XCB_BUTTON_PRESS &&
+        event_type != XCB_ENTER_NOTIFY && event_type != XCB_LEAVE_NOTIFY) {
+        logger("---------------- %s ---------------------\n", label);
+    }
 
     switch (event_type) {
 #define EVENT(type, callback) case type: callback((void *) event); break
