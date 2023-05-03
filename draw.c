@@ -5,24 +5,18 @@
 
 #define COLOR_MAX 0xFFFF
 
-/*****************************************************************************/
-/*                          declare static functions                         */
-/*****************************************************************************/
+/* static function declarations */
 static PangoRectangle get_layout_rect();
 static PangoAttribute *create_pango_fg_attr(PangoColor color);
 static void set_cairo_color(cairo_t *cr, PangoColor color);
 
-/*****************************************************************************/
-/*                              static variables                             */
-/*****************************************************************************/
+/* static variables */
 static PangoLayout *layout;
 static PangoAttrList *attrs;
 static uint8_t barheight = 0;
 static uint8_t lrpad;
 
-/*****************************************************************************/
-/*                          define static functions                          */
-/*****************************************************************************/
+/* static function implementations */
 PangoRectangle get_layout_rect() {
     PangoRectangle rect;
 
@@ -58,9 +52,7 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
     cairo_set_source_rgb(cr, red, green, blue);
 }
 
-/*****************************************************************************/
-/*                              public functions                             */
-/*****************************************************************************/
+/* public function implementations */
 void init_pango_layout(char **families, size_t length, uint8_t size) {
     if (barheight) return;
 

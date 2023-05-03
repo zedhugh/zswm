@@ -20,6 +20,20 @@ typedef struct {
 } Color;
 
 typedef struct Monitor Monitor;
+typedef struct Client Client;
+
+struct Client {
+    char name[256];
+    int x, y, width, height;
+    int oldx, oldy, old_width, old_height;
+    int bw, oldbw;              /* border width */
+    unsigned int tags;
+    bool isfullscreen;
+    xcb_window_t win;
+    Client *next;
+    Monitor *mon;
+};
+
 struct Monitor {
     /* monitor rectangle */
     int16_t mx, my;
