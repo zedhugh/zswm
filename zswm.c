@@ -1,4 +1,5 @@
 #include <X11/cursorfont.h>
+#include <cairo-xcb.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -8,8 +9,6 @@
 #include <xcb/xinerama.h>
 #include <xcb/xproto.h>
 
-#include "cairo.h"
-#include "cairo-xcb.h"
 #include "config.h"
 #include "draw.h"
 #include "event.h"

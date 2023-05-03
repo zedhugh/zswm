@@ -1,13 +1,7 @@
-#include "cairo.h"
-#include "pango/pango-color.h"
-#include "pango/pango-layout.h"
-#include "pango/pango-types.h"
-#include "pango/pangocairo.h"
+#include <pango/pangocairo.h>
+
 #include "types.h"
 #include "utils.h"
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
 
 #define COLOR_MAX 0xFFFF
 

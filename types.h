@@ -1,11 +1,8 @@
+#include <pango/pangocairo.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
-
-#include "cairo.h"
-#include "pango/pango-color.h"
-#include "pango/pango-layout.h"
 
 #ifndef __ZS_WM_TYPES__
 #define __ZS_WM_TYPES__
