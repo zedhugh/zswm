@@ -20,7 +20,7 @@ clean:
 	${RM} $(TARGET)
 	${RM} -r $(BUILD_DIR)
 
-run: $(TARGET_NAME)
+run:
 	-$(shell Xephyr :1 &)
 
 wm: $(TARGET_NAME)

@@ -21,4 +21,7 @@ xcb_visualtype_t *find_visual(xcb_screen_t *screen , xcb_visualid_t visualid);
 
 Monitor *xy_to_monitor(Monitor *monitors, int x, int y);
 
+void set_window_class_instance(xcb_connection_t *conn, xcb_window_t window,
+                               const char *class, const char *instance);
+
 #endif

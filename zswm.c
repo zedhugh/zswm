@@ -201,16 +201,7 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
             die("map bar window:");
         }
 
-        /**
-         * set wm class use xcb api,
-         * reference https://github.com/awesomeWM/awesome/blob/master/xwindow.h
-         * it's equal to X11 api below
-         * XClassHint ch = { "zswm", "zswm" };
-         * XSetClassHint(dpy, win, &ch);
-         */
-        char class_name[] = "zswm\0zswm"; /* class and instance splited by \0 */
-        size_t class_len = sizeof(class_name);
-        xcb_icccm_set_wm_class(conn, win, class_len, class_name);
+        set_window_class_instance(conn, win, "zswm", "zswm");
 
         m->barwin = win;
 

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/xcb_icccm.h>
 
 #include "global.h"
 #include "utils.h"
@@ -89,4 +90,47 @@ xcb_visualtype_t * find_visual(xcb_screen_t *screen , xcb_visualid_t visualid) {
     }
 
     return NULL;;
+}
+
+Monitor *xy_to_monitor(Monitor *monitors, int x, int y) {
+    int16_t mx, my;
+    uint16_t mw, mh;
+
+    for (Monitor *m = monitors; m; m = m->next) {
+        mx = m->mx;
+        my = m->my;
+        mw = m->mw;
+        mh = m->mh;
+        if (x >= mx && x <= mx + mw && y >= my && y <= my + mh) {
+            return m;
+        }
+    }
+
+    return monitors;
+}
+
+/**
+ * set wm class use xcb api,
+ * reference https://github.com/awesomeWM/awesome/blob/master/xwindow.h.
+ * It's equal to X11 api below:
+ * XClassHint ch = { "zswm", "zswm" };
+ * XSetClassHint(dpy, win, &ch);
+ */
+void set_window_class_instance(xcb_connection_t *conn, xcb_window_t window,
+                               const char *class, const char *instance) {
+    size_t class_length = strlen(class) + 1;
+    size_t instance_length = strlen(instance) + 1;
+    size_t length = class_length + instance_length;
+
+    char *str = malloc(length * sizeof(char));
+    for (size_t i = 0; i < length; i++) {
+        if (i < class_length) {
+            str[i] = class[i];
+        } else {
+            str[i] = instance[i - class_length];
+        }
+    }
+
+    xcb_icccm_set_wm_class(conn, window, length, str);
+    free(str);
 }
