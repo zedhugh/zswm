@@ -58,7 +58,7 @@ static const char *dmenucmd[] = {
 static void quit(const Arg *arg) {
     global.running = false;
     if (arg->i) {
-        global.restart = 1;
+        global.restart = true;
     }
 }
 

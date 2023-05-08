@@ -139,12 +139,13 @@ static void enter_notify(xcb_enter_notify_event_t *ev) {
     free(reply);
 
     uint32_t mask = XCB_CW_BORDER_PIXEL;
-    xcb_change_window_attributes_value_list_t win_attr = {
-        .border_pixel = alloc_color("#FF00FF"),
+    xcb_colormap_t cmap = global.screen->default_colormap;
+    xcb_params_cw_t params = {
+        .border_pixel = alloc_color(c, cmap, "#FF00FF"),
     };
-    xcb_change_window_attributes_aux(c, window, mask, &win_attr);
+    xcb_aux_change_window_attributes(c, window, mask, &params);
 
-    xcb_flush(global.conn);
+    xcb_flush(c);
 }
 
 static void leave_notify(xcb_leave_notify_event_t *ev) {

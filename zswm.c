@@ -21,7 +21,7 @@ static void init_bar_window(Monitor *monitor, uint8_t barheight);
 static xcb_screen_t *check_other_wm(xcb_connection_t *connection);
 static void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s);
 static Monitor *monitor_scan(xcb_connection_t *conn);
-static void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]);
+static void draw_tags(Monitor *monitor, Color scheme[SchemeLast][ColLast]);
 static void update_monitor_bar(Monitor *monitor);
 
 xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
@@ -89,15 +89,15 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
     return monitors;
 }
 
-void draw_tags(Monitor *m, Color scheme[SchemeLast][ColLast]) {
+void draw_tags(Monitor *monitor, Color scheme[SchemeLast][ColLast]) {
     int x = 0;
     Color *color;
 
     for (int i = 0; i < LENGTH(tags); i++) {
-        uint16_t sel = (m->seltags >> i) & 1;
+        uint16_t sel = (monitor->seltags >> i) & 1;
         color = scheme[sel ? SchemeSel : SchemeNorm];
         const char *tag = tags[i];
-        draw_text(m->cr, tag, color, x);
+        draw_text(monitor->cr, tag, color, x);
         x += get_text_width(tag);
     }
 }

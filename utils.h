@@ -15,7 +15,7 @@ void *ecalloc(size_t nmemb, size_t size);
 
 void spawn (const Arg *arg);
 
-uint32_t alloc_color(const char *color);
+uint32_t alloc_color(xcb_connection_t *conn, xcb_colormap_t cmap, const char *color);
 
 xcb_visualtype_t *find_visual(xcb_screen_t *screen , xcb_visualid_t visualid);
 

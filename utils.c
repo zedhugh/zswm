@@ -8,7 +8,6 @@
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
 
-#include "global.h"
 #include "utils.h"
 
 double get_time() {
@@ -62,16 +61,15 @@ void spawn(const Arg * arg) {
     }
 }
 
-uint32_t alloc_color(const char *color) {
+uint32_t alloc_color(xcb_connection_t *conn, xcb_colormap_t cmap, const char *color) {
     uint16_t red, green, blue;
     xcb_alloc_color_cookie_t cookie;
     xcb_alloc_color_reply_t *reply;
 
     xcb_aux_parse_color(color, &red, &green, &blue);
-    xcb_colormap_t cmap = global.screen->default_colormap;
-    cookie = xcb_alloc_color(global.conn, cmap, red, green, blue);
+    cookie = xcb_alloc_color(conn, cmap, red, green, blue);
 
-    reply = xcb_alloc_color_reply(global.conn, cookie, NULL);
+    reply = xcb_alloc_color_reply(conn, cookie, NULL);
     uint32_t color_pixel = reply->pixel;
 
     free(reply);
