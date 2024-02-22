@@ -5,6 +5,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BINARY "zswm")
 add_compile_definitions(LOG_FILE="/home/zedhugh/zswm-log.txt")
 
+# add flags
+add_compile_options(-g)
+add_compile_options(-Wall)
+# add_compile_options(-fsanitize=address)
+
 project(zswm VERSION 2.0 LANGUAGES C)
 
 add_executable(${BINARY} zswm.c utils.c draw.c event.c)
