@@ -54,7 +54,8 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
 
 /* public function implementations */
 void init_pango_layout(char **families, size_t length, uint8_t size) {
-    if (barheight) return;
+    if (barheight)
+        return;
 
     PangoFontMap *fontmap = pango_cairo_font_map_new();
     PangoContext *context = pango_font_map_create_context(fontmap);
@@ -72,7 +73,7 @@ void init_pango_layout(char **families, size_t length, uint8_t size) {
         pango_attr_list_insert(attrs, attr);
 
         PangoFontMetrics *metrics;
-        metrics =pango_context_get_metrics(context, desc, lang);
+        metrics = pango_context_get_metrics(context, desc, lang);
 
         int height = PANGO_PIXELS(pango_font_metrics_get_height(metrics));
         int ascent = PANGO_PIXELS(pango_font_metrics_get_ascent(metrics));
@@ -93,9 +94,7 @@ void init_pango_layout(char **families, size_t length, uint8_t size) {
     }
 }
 
-uint8_t get_barheight() {
-    return barheight;
-}
+uint8_t get_barheight() { return barheight; }
 
 int get_text_width(const char *text) {
     pango_layout_set_text(layout, text, -1);
@@ -121,7 +120,8 @@ void draw_text(cairo_t *cr, const char *text, Color scheme[ColLast], int x) {
     pango_cairo_show_layout(cr, layout);
 }
 
-Color create_color(xcb_connection_t *conn, xcb_colormap_t cmap, const char *colorname) {
+Color create_color(xcb_connection_t *conn, xcb_colormap_t cmap,
+                   const char *colorname) {
     Color color;
 
     if (!pango_color_parse(&color.pango_color, colorname)) {
@@ -131,10 +131,8 @@ Color create_color(xcb_connection_t *conn, xcb_colormap_t cmap, const char *colo
     xcb_alloc_color_cookie_t cookie;
     xcb_alloc_color_reply_t *reply;
 
-    cookie = xcb_alloc_color(conn, cmap,
-                             color.pango_color.red,
-                             color.pango_color.green,
-                             color.pango_color.blue);
+    cookie = xcb_alloc_color(conn, cmap, color.pango_color.red,
+                             color.pango_color.green, color.pango_color.blue);
     reply = xcb_alloc_color_reply(conn, cookie, NULL);
     color.xcb_color_pixel = reply->pixel;
     free(reply);

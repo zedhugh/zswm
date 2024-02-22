@@ -30,15 +30,13 @@ xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
     xcb_screen_t *screen = iter.data;
 
     uint32_t mask = XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_ENTER_WINDOW |
-        XCB_EVENT_MASK_POINTER_MOTION |
-        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-        XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+                    XCB_EVENT_MASK_POINTER_MOTION |
+                    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+                    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 
     xcb_void_cookie_t cookie;
-    cookie = xcb_change_window_attributes_checked(connection,
-                                                  screen->root,
-                                                  XCB_CW_EVENT_MASK,
-                                                  &mask);
+    cookie = xcb_change_window_attributes_checked(connection, screen->root,
+                                                  XCB_CW_EVENT_MASK, &mask);
 
     xcb_generic_error_t *error = xcb_request_check(connection, cookie);
     if (error) {
@@ -131,10 +129,9 @@ void grabkeys(void) {
         xcb_key_symbols_t *syms = global.keysymbol;
         xcb_keysym_t keysym = keys[i].keysym;
         xcb_keycode_t *keycodesPtr = xcb_key_symbols_get_keycode(syms, keysym);
-        xcb_void_cookie_t cookie = xcb_grab_key(conn, XCB_GRAB_ANY, root,
-                                                keys[i].modifier, *keycodesPtr,
-                                                XCB_GRAB_MODE_ASYNC,
-                                                XCB_GRAB_MODE_ASYNC);
+        xcb_void_cookie_t cookie = xcb_grab_key(
+            conn, XCB_GRAB_ANY, root, keys[i].modifier, *keycodesPtr,
+            XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
         xcb_generic_error_t *error = xcb_request_check(conn, cookie);
         if ((error)) {
             xcb_disconnect(conn);
@@ -154,13 +151,13 @@ void init_cursors() {
     size_t name_len = strlen(cursorfont);
     xcb_open_font_checked(conn, font, name_len, cursorfont);
 
-    int cursor[] = { XC_left_ptr, XC_sizing, XC_fleur };
+    int cursor[] = {XC_left_ptr, XC_sizing, XC_fleur};
 
     for (int i = CurNormal; i < CurLast; i++) {
         xcb_cursor_t temp_cursor = xcb_generate_id(conn);
         xcb_create_glyph_cursor_checked(conn, temp_cursor, font, font,
-                                        cursor[i], cursor[i] + 1,
-                                        0, 0, 0, 0, 0, 0);
+                                        cursor[i], cursor[i] + 1, 0, 0, 0, 0, 0,
+                                        0);
         cursors[i] = temp_cursor;
     }
 }
@@ -171,12 +168,13 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
     xcb_cursor_t *cursors = global.cursors;
 
     for (Monitor *m = monitor; m; m = m->next) {
-        if (m->barwin) continue;
+        if (m->barwin)
+            continue;
 
         xcb_window_t win = xcb_generate_id(conn);
         xcb_void_cookie_t cookie;
         uint32_t value_mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP |
-            XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
+                              XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
         xcb_create_window_value_list_t value = {
             .override_redirect = 1,
             .background_pixmap = XCB_BACK_PIXMAP_PARENT_RELATIVE,
@@ -185,13 +183,9 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
         };
 
         uint16_t class = XCB_WINDOW_CLASS_INPUT_OUTPUT;
-        cookie = xcb_create_window_aux_checked(conn, screen->root_depth,
-                                               win, screen->root,
-                                               m->mx, m->my,
-                                               m->mw, height,
-                                               0,
-                                               class, screen->root_visual,
-                                               value_mask, &value);
+        cookie = xcb_create_window_aux_checked(
+            conn, screen->root_depth, win, screen->root, m->mx, m->my, m->mw,
+            height, 0, class, screen->root_visual, value_mask, &value);
         if (xcb_request_check(conn, cookie)) {
             die("create bar window:");
         }
@@ -206,9 +200,8 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
         m->barwin = win;
 
         cairo_surface_t *surface;
-        surface = cairo_xcb_surface_create(conn, win,
-                                           global.visual,
-                                           m->mw, height);
+        surface =
+            cairo_xcb_surface_create(conn, win, global.visual, m->mw, height);
         m->surface = surface;
         m->cr = cairo_create(surface);
 
@@ -263,7 +256,9 @@ int main(int argc, char *argv[]) {
         update_monitor_bar(monitors);
     }
 
-    if (global.restart) execvp(argv[0], argv);
+    if (global.restart) {
+        execvp(argv[0], argv);
+    }
     xcb_disconnect(conn);
 
     return EXIT_SUCCESS;

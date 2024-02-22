@@ -26,7 +26,7 @@ struct Client {
     char name[256];
     int x, y, width, height;
     int oldx, oldy, old_width, old_height;
-    int bw, oldbw;              /* border width */
+    int bw, oldbw; /* border width */
     unsigned int tags;
     bool isfullscreen;
     xcb_window_t win;
@@ -56,7 +56,7 @@ struct Monitor {
 enum { CurNormal, CurResize, CurMove, CurLast };
 
 enum { SchemeNorm, SchemeSel, SchemeLast }; /* color schemes */
-enum { ColFg, ColBg, ColBorder, ColLast }; /* color scheme index */
+enum { ColFg, ColBg, ColBorder, ColLast };  /* color scheme index */
 typedef enum { ClkTagBar, ClkRootWin } ClickType;
 
 typedef struct {

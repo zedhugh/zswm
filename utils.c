@@ -13,7 +13,7 @@
 double get_time() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return  tv.tv_sec + tv.tv_usec / 1000000.0;
+    return tv.tv_sec + tv.tv_usec / 1000000.0;
 }
 
 void die(const char *fmt, ...) {
@@ -53,7 +53,7 @@ void *ecalloc(size_t nmemb, size_t size) {
     return p;
 }
 
-void spawn(const Arg * arg) {
+void spawn(const Arg *arg) {
     if (fork() == 0) {
         setsid();
         execvp(((char **)arg->v)[0], arg->v);
@@ -61,7 +61,8 @@ void spawn(const Arg * arg) {
     }
 }
 
-uint32_t alloc_color(xcb_connection_t *conn, xcb_colormap_t cmap, const char *color) {
+uint32_t alloc_color(xcb_connection_t *conn, xcb_colormap_t cmap,
+                     const char *color) {
     uint16_t red, green, blue;
     xcb_alloc_color_cookie_t cookie;
     xcb_alloc_color_reply_t *reply;
@@ -76,7 +77,7 @@ uint32_t alloc_color(xcb_connection_t *conn, xcb_colormap_t cmap, const char *co
     return color_pixel;
 }
 
-xcb_visualtype_t * find_visual(xcb_screen_t *screen , xcb_visualid_t visualid) {
+xcb_visualtype_t *find_visual(xcb_screen_t *screen, xcb_visualid_t visualid) {
     xcb_depth_iterator_t depth_iter;
     depth_iter = xcb_screen_allowed_depths_iterator(screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
@@ -87,7 +88,7 @@ xcb_visualtype_t * find_visual(xcb_screen_t *screen , xcb_visualid_t visualid) {
         }
     }
 
-    return NULL;;
+    return NULL;
 }
 
 Monitor *xy_to_monitor(Monitor *monitors, int x, int y) {
