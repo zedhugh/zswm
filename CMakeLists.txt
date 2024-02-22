@@ -11,7 +11,7 @@ add_executable(${BINARY} zswm.c utils.c draw.c event.c)
 target_include_directories(${BINARY} PRIVATE ${SOURCE_DIR})
 
 find_package(X11 REQUIRED)
-target_link_libraries(${BINARY} X11 X11-xcb xcb xcb-icccm xcb-keysyms xcb-util xcb-xinerama)
+target_link_libraries(${BINARY} xcb xcb-icccm xcb-keysyms xcb-util xcb-xfixes xcb-xinerama)
 
 find_package(PkgConfig REQUIRED)
 
