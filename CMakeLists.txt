@@ -12,7 +12,7 @@ add_compile_options(-Wall)
 
 project(zswm VERSION 2.0 LANGUAGES C)
 
-add_executable(${BINARY} zswm.c utils.c draw.c event.c)
+add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c)
 target_include_directories(${BINARY} PRIVATE ${SOURCE_DIR})
 
 find_package(X11 REQUIRED)

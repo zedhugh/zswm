@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
 
 #ifndef __ZS_WM_TYPES__

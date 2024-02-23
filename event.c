@@ -9,6 +9,7 @@
 #include "draw.h"
 #include "event.h"
 #include "utils.h"
+#include "window.h"
 
 static void create_notify(xcb_create_notify_event_t *ev) {
     logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent,
@@ -25,7 +26,7 @@ static void map_request(xcb_map_request_event_t *ev) {
         xcb_params_cw_t params = {
             .event_mask =
                 XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
-            .border_pixel = global.color[SchemeSel][ColBorder].xcb_color_pixel,
+            .border_pixel = global.color[SchemeNorm][ColBorder].xcb_color_pixel,
         };
         xcb_aux_change_window_attributes(global.conn, ev->window, change_mask,
                                          &params);
@@ -129,32 +130,21 @@ static void motion_notify(xcb_motion_notify_event_t *ev) {
 }
 
 static void enter_notify(xcb_enter_notify_event_t *ev) {
-    if (ev->event == global.screen->root)
+    xcb_window_t window = ev->event;
+    if (window == global.screen->root)
         return;
 
-    xcb_connection_t *c = global.conn;
-    xcb_window_t window = ev->event;
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(c, window);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(c, cookie, NULL);
-    free(reply);
-
-    uint32_t mask = XCB_CW_BORDER_PIXEL;
-    xcb_colormap_t cmap = global.screen->default_colormap;
-    xcb_params_cw_t params = {
-        .border_pixel = alloc_color(c, cmap, "#FF00FF"),
-    };
-    xcb_aux_change_window_attributes(c, window, mask, &params);
-
-    xcb_flush(c);
+    uint32_t color_pixel = global.color[SchemeSel][ColBorder].xcb_color_pixel;
+    change_window_border_color(window, color_pixel);
 }
 
 static void leave_notify(xcb_leave_notify_event_t *ev) {
-    uint32_t value_mask = XCB_CW_BORDER_PIXEL;
-    uint32_t value_list[] = {0};
+    xcb_window_t window = ev->event;
+    if (window == global.screen->root)
+        return;
 
-    xcb_connection_t *c = global.conn;
-    xcb_change_window_attributes(c, ev->root, value_mask, value_list);
-    xcb_flush(c);
+    uint32_t color_pixel = global.color[SchemeNorm][ColBorder].xcb_color_pixel;
+    change_window_border_color(window, color_pixel);
 }
 
 void event_handle(xcb_generic_event_t *event) {
