@@ -12,6 +12,7 @@
 #include "config.h"
 #include "draw.h"
 #include "event.h"
+#include "window.h"
 #include "utils.h"
 
 zswm_global_t global;
@@ -214,6 +215,27 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
     }
 }
 
+void scan() {
+    xcb_connection_t *conn = global.conn;
+    xcb_window_t root = global.screen->root;
+    xcb_query_tree_cookie_t cookie = xcb_query_tree(conn, root);
+    xcb_query_tree_reply_t *reply = xcb_query_tree_reply(conn, cookie, NULL);
+
+    xcb_window_t *windows = xcb_query_tree_children(reply);
+    int len = xcb_query_tree_children_length(reply);
+    for (int i = 0; i < len; i++) {
+        xcb_window_t window = windows[i];
+        xcb_get_window_attributes_reply_t *wa = get_window_attributes(window);
+
+        if (wa->override_redirect) {
+            free(wa);
+            continue;
+        }
+
+        manage_window(window);
+    }
+}
+
 int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -245,6 +267,8 @@ int main(int argc, char *argv[]) {
     init_cursors();
     init_bar_window(monitors, get_barheight());
     update_monitor_bar(monitors);
+
+    scan();
 
     xcb_flush(conn);
 
