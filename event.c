@@ -22,29 +22,7 @@ static void map_request(xcb_map_request_event_t *ev) {
     xcb_map_window(global.conn, ev->window);
     xcb_map_subwindows(global.conn, ev->window);
     if (ev->parent == global.screen->root) {
-        xcb_cw_t change_mask = XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL;
-        xcb_params_cw_t params = {
-            .event_mask =
-                XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
-            .border_pixel = global.color[SchemeNorm][ColBorder].xcb_color_pixel,
-        };
-        xcb_aux_change_window_attributes(global.conn, ev->window, change_mask,
-                                         &params);
-
-        xcb_config_window_t config_mask =
-            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT |
-            XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        int border = 1;
-        xcb_params_configure_window_t window_config = {
-            .x = global.current_monitor->wx,
-            .y = global.current_monitor->wy,
-            .width = global.current_monitor->ww - (border * 2),
-            .height = global.current_monitor->wh - (border * 2),
-            .border_width = border,
-        };
-        xcb_aux_configure_window(global.conn, ev->window, config_mask,
-                                 &window_config);
+        manage_window(ev->window);
     }
 
     xcb_flush(global.conn);
@@ -136,6 +114,9 @@ static void enter_notify(xcb_enter_notify_event_t *ev) {
 
     uint32_t color_pixel = global.color[SchemeSel][ColBorder].xcb_color_pixel;
     change_window_border_color(window, color_pixel);
+
+    xcb_set_input_focus(global.conn, XCB_INPUT_FOCUS_POINTER_ROOT, window,
+                        XCB_CURRENT_TIME);
 }
 
 static void leave_notify(xcb_leave_notify_event_t *ev) {
@@ -145,6 +126,12 @@ static void leave_notify(xcb_leave_notify_event_t *ev) {
 
     uint32_t color_pixel = global.color[SchemeNorm][ColBorder].xcb_color_pixel;
     change_window_border_color(window, color_pixel);
+}
+
+static void focus_in(xcb_leave_notify_event_t *ev) { logger("focus in\n"); }
+
+static void property_notify(xcb_leave_notify_event_t *ev) {
+    logger("property notify\n");
 }
 
 void event_handle(xcb_generic_event_t *event) {
@@ -172,6 +159,8 @@ void event_handle(xcb_generic_event_t *event) {
         EVENT(XCB_MOTION_NOTIFY, motion_notify);
         EVENT(XCB_ENTER_NOTIFY, enter_notify);
         EVENT(XCB_LEAVE_NOTIFY, leave_notify);
+        EVENT(XCB_FOCUS_IN, focus_in);
+        EVENT(XCB_PROPERTY_NOTIFY, property_notify);
 #undef EVENT
     }
 
