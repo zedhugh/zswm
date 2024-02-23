@@ -156,8 +156,8 @@ void init_cursors() {
     for (int i = CurNormal; i < CurLast; i++) {
         xcb_cursor_t temp_cursor = xcb_generate_id(conn);
         xcb_create_glyph_cursor_checked(conn, temp_cursor, font, font,
-                                        cursor[i], cursor[i] + 1, 0, 0, 0, 0, 0,
-                                        0);
+                                        cursor[i], cursor[i] + 1, 0, 0, 0,
+                                        0xFFFF, 0xFFFF, 0xFFFF);
         cursors[i] = temp_cursor;
     }
 }
@@ -242,8 +242,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    init_bar_window(monitors, get_barheight());
     init_cursors();
+    init_bar_window(monitors, get_barheight());
     update_monitor_bar(monitors);
 
     xcb_flush(conn);
