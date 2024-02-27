@@ -12,8 +12,8 @@
 #include "config.h"
 #include "draw.h"
 #include "event.h"
-#include "window.h"
 #include "utils.h"
+#include "window.h"
 
 zswm_global_t global;
 
@@ -227,10 +227,25 @@ void scan() {
         xcb_window_t window = windows[i];
         xcb_get_window_attributes_reply_t *wa = get_window_attributes(window);
 
-        if (wa->override_redirect) {
-            free(wa);
+        uint8_t override_redirect = wa->override_redirect;
+        uint8_t map_state = wa->map_state;
+
+        free(wa);
+
+        if (override_redirect || map_state != XCB_MAP_STATE_VIEWABLE) {
             continue;
         }
+
+        xcb_window_t trans_reply = XCB_NONE;
+        xcb_icccm_get_wm_transient_for_reply(
+            conn, xcb_icccm_get_wm_transient_for(conn, window), &trans_reply,
+            NULL);
+
+        if (trans_reply != XCB_NONE) {
+            continue;
+        }
+
+        logger("window: %#x\n", window);
 
         manage_window(window);
     }
