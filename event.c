@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <xcb/xcb.h>
@@ -10,6 +11,8 @@
 #include "event.h"
 #include "utils.h"
 #include "window.h"
+
+static bool need_refresh_bar = false;
 
 static void create_notify(xcb_create_notify_event_t *ev) {
     logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent,
@@ -29,6 +32,7 @@ static void map_request(xcb_map_request_event_t *ev) {
 }
 
 static void map_notify(xcb_map_notify_event_t *ev) {
+    need_refresh_bar = true;
     logger("window: %d, root: %d\n", ev->window, global.screen->root);
 }
 
@@ -72,6 +76,8 @@ static void keypress(xcb_key_press_event_t *ev) {
         Key key = keys[i];
         if (keysym == key.keysym && ev->state == key.modifier && key.func) {
             key.func(&key.arg);
+
+            need_refresh_bar = true;
             return;
         }
     }
@@ -88,6 +94,7 @@ static void button_press(xcb_button_press_event_t *ev) {
 
         if (i < LENGTH(tags)) {
             global.current_monitor->seltags = 1 << i;
+            need_refresh_bar = true;
         }
     }
 }
@@ -96,7 +103,9 @@ static void client_message(xcb_client_message_event_t *ev) {
     logger("format: %d, type: %d\n", ev->format, ev->type);
 }
 
-static void destory_notify(xcb_destroy_notify_event_t *ev) {}
+static void destory_notify(xcb_destroy_notify_event_t *ev) {
+    need_refresh_bar = true;
+}
 
 static void motion_notify(xcb_motion_notify_event_t *ev) {
     if (ev->root != global.screen->root)
@@ -128,19 +137,29 @@ static void leave_notify(xcb_leave_notify_event_t *ev) {
     change_window_border_color(window, color_pixel);
 }
 
-static void focus_in(xcb_leave_notify_event_t *ev) { logger("focus in\n"); }
+static void focus_in(xcb_focus_in_event_t *ev) {
+    need_refresh_bar = true;
+    logger("focus in\n");
+}
+
+static void focus_out(xcb_focus_out_event_t *ev) {
+    need_refresh_bar = true;
+    logger("focus out\n");
+}
 
 static void property_notify(xcb_leave_notify_event_t *ev) {
     logger("property notify\n");
 }
 
-void event_handle(xcb_generic_event_t *event) {
+bool event_handle(xcb_generic_event_t *event) {
     uint8_t event_type = XCB_EVENT_RESPONSE_TYPE(event);
     const char *label = xcb_event_get_label(event_type);
     if (event_type != XCB_MOTION_NOTIFY && event_type != XCB_BUTTON_PRESS &&
         event_type != XCB_ENTER_NOTIFY && event_type != XCB_LEAVE_NOTIFY) {
         logger("---------------- %s ---------------------\n", label);
     }
+
+    need_refresh_bar = false;
 
     switch (event_type) {
 #define EVENT(type, callback)                                                  \
@@ -160,9 +179,12 @@ void event_handle(xcb_generic_event_t *event) {
         EVENT(XCB_ENTER_NOTIFY, enter_notify);
         EVENT(XCB_LEAVE_NOTIFY, leave_notify);
         EVENT(XCB_FOCUS_IN, focus_in);
+        EVENT(XCB_FOCUS_OUT, focus_out);
         EVENT(XCB_PROPERTY_NOTIFY, property_notify);
 #undef EVENT
     }
 
     free(event);
+
+    return need_refresh_bar;
 }

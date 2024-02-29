@@ -309,8 +309,9 @@ int main(int argc, char *argv[]) {
     xcb_generic_event_t *event = NULL;
 
     while (global.running && (event = xcb_wait_for_event(conn))) {
-        event_handle(event);
-        update_monitor_bar(monitors);
+        if (event_handle(event)) {
+            update_monitor_bar(monitors);
+        }
     }
 
     if (global.restart) {
