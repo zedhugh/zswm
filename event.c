@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
@@ -110,7 +109,7 @@ static void destory_notify(xcb_destroy_notify_event_t *ev) {
 static void motion_notify(xcb_motion_notify_event_t *ev) {
     if (ev->root != global.screen->root)
         return;
-    printf("motion notify: x: %d,\t y: %d\n", ev->root_x, ev->root_y);
+    logger("motion notify: x: %d,\t y: %d\n", ev->root_x, ev->root_y);
 
     Monitor *mon = xy_to_monitor(global.monitors, ev->root_x, ev->root_y);
     global.current_monitor = mon;
