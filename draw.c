@@ -1,4 +1,6 @@
+#include <cairo.h>
 #include <pango/pangocairo.h>
+#include <stdint.h>
 
 #include "types.h"
 #include "utils.h"
@@ -118,6 +120,14 @@ void draw_text(cairo_t *cr, const char *text, Color scheme[ColLast], int x) {
     pango_cairo_update_layout(cr, layout);
     cairo_move_to(cr, x + lrpad, rect.y);
     pango_cairo_show_layout(cr, layout);
+}
+
+void draw_bg(cairo_t *cr, Color color, int16_t x, int16_t y, uint16_t width,
+             uint16_t height) {
+    cairo_move_to(cr, x, y);
+    cairo_rectangle(cr, x, y, width, height);
+    set_cairo_color(cr, color.pango_color);
+    cairo_fill(cr);
 }
 
 Color create_color(xcb_connection_t *conn, xcb_colormap_t cmap,

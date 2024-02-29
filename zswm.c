@@ -1,7 +1,9 @@
 #include <X11/cursorfont.h>
 #include <cairo-xcb.h>
+#include <cairo.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
@@ -103,6 +105,8 @@ void draw_tags(Monitor *monitor, Color scheme[SchemeLast][ColLast]) {
 
 void update_monitor_bar(Monitor *monitor) {
     for (Monitor *mon = monitor; mon; mon = mon->next) {
+        Color bg = global.color[SchemeNorm][ColBg];
+        draw_bg(mon->cr, bg, 0, 0, mon->mw, get_barheight());
         draw_tags(mon, global.color);
         cairo_surface_flush(mon->surface);
     }
@@ -200,11 +204,9 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
 
         m->barwin = win;
 
-        cairo_surface_t *surface;
-        surface =
+        m->surface =
             cairo_xcb_surface_create(conn, win, global.visual, m->mw, height);
-        m->surface = surface;
-        m->cr = cairo_create(surface);
+        m->cr = cairo_create(m->surface);
 
         m->wx = m->mx;
         m->wy = m->my + height;
@@ -259,17 +261,11 @@ int main(int argc, char *argv[]) {
     }
 
     xcb_screen_t *screen = check_other_wm(conn);
-    Monitor *monitors = monitor_scan(conn);
-    print_monitor_info(monitors);
     xcb_visualtype_t *visual = find_visual(screen, screen->root_visual);
-
-    init_pango_layout(fontfamilies, LENGTH(fontfamilies), fontsize);
 
     global.conn = conn;
     global.screen = screen;
     global.visual = visual;
-    global.monitors = monitors;
-    global.current_monitor = monitors;
     global.running = true;
 
     xcb_colormap_t cmap = screen->default_colormap;
@@ -278,6 +274,28 @@ int main(int argc, char *argv[]) {
             global.color[i][j] = create_color(conn, cmap, colors[i][j]);
         }
     }
+
+    cairo_surface_t *surface = cairo_xcb_surface_create(
+        conn, screen->root, visual, screen->width_in_pixels,
+        screen->height_in_pixels);
+    cairo_t *cr = cairo_create(surface);
+    Color bg = global.color[SchemeNorm][ColBg];
+    draw_bg(cr, bg, 0, 0, screen->width_in_pixels, screen->height_in_pixels);
+    cairo_surface_flush(surface);
+    cairo_destroy(cr);
+    free(surface);
+
+    uint16_t mask = XCB_CW_BACK_PIXEL;
+    uint32_t params[] = {bg.xcb_color_pixel};
+    xcb_change_window_attributes_checked(conn, screen->root, mask, params);
+
+    Monitor *monitors = monitor_scan(conn);
+    print_monitor_info(monitors);
+
+    init_pango_layout(fontfamilies, LENGTH(fontfamilies), fontsize);
+
+    global.monitors = monitors;
+    global.current_monitor = monitors;
 
     init_cursors();
     init_bar_window(monitors, get_barheight());
