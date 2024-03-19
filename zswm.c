@@ -165,6 +165,12 @@ void init_cursors() {
                                         0xFFFF, 0xFFFF, 0xFFFF);
         cursors[i] = temp_cursor;
     }
+
+    uint32_t mask = XCB_CW_CURSOR;
+    xcb_change_window_attributes_value_list_t value = {
+        .cursor = cursors[CurNormal],
+    };
+    xcb_change_window_attributes_aux(conn, global.screen->root, mask, &value);
 }
 
 void init_bar_window(Monitor *monitor, uint8_t height) {
