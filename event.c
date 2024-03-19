@@ -125,6 +125,7 @@ static void enter_notify(xcb_enter_notify_event_t *ev) {
 
     xcb_set_input_focus(global.conn, XCB_INPUT_FOCUS_POINTER_ROOT, window,
                         XCB_CURRENT_TIME);
+    xcb_flush(global.conn);
 }
 
 static void leave_notify(xcb_leave_notify_event_t *ev) {
