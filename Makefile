@@ -2,19 +2,19 @@ MAKEFILE_ABS_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MAKEFILE_DIR := $(dir $(MAKEFILE_ABS_PATH))
 PWD_DIR := $(CURDIR)/
 BUILD_DIR := $(addprefix $(MAKEFILE_DIR),build)
+SRC_DIR := $(addprefix $(MAKEFILE_DIR),src/)
 
 TARGET_NAME := zswm
-TARGET := $(addprefix ./,$(TARGET_NAME))
+TARGET := $(addprefix $(MAKEFILE_DIR),$(TARGET_NAME))
 SRC := zswm.c utils.c event.c draw.c config.h window.c
 
+SRC := $(addprefix $(SRC_DIR),$(SRC))
 ifneq ($(PWD_DIR),$(MAKEFILE_DIR))
-	SRC := $(addprefix $(MAKEFILE_DIR),$(SRC))
 	TARGET := $(addprefix $(MAKEFILE_DIR),$(TARGET_NAME))
 endif
 
 
-$(TARGET_NAME): $(SRC)
-	$(MAKE) build
+$(TARGET_NAME): $(SRC) build
 
 clean:
 	${RM} $(TARGET)
@@ -27,18 +27,18 @@ wm: $(TARGET_NAME)
 	DISPLAY=:1 $(TARGET)
 
 prepare:
-	@cmake -S $(MAKEFILE_DIR) -B $(BUILD_DIR)
+	@cmake -S $(SRC_DIR) -B $(BUILD_DIR)
 	@cp $(BUILD_DIR)/compile_commands.json $(MAKEFILE_DIR)
 
 build: prepare
 	@cmake --build $(BUILD_DIR)
-	@cp $(BUILD_DIR)/$(TARGET_NAME) $(TARGET_NAME)
+	@cp $(BUILD_DIR)/$(TARGET_NAME) $(TARGET)
 
 install: $(TARGET_NAME)
-	@cp $(BUILD_DIR)/$(TARGET_NAME) /home/zedhugh/.local/bin/$(TARGET_NAME)
+	@cp $(BUILD_DIR)/$(TARGET_NAME) ~/.local/bin/$(TARGET_NAME)
 
 uninstall:
-	${RM} -r /home/zedhugh/.local/bin/$(TARGET_NAME)
+	${RM} -r ~/.local/bin/$(TARGET_NAME)
 
 reinstall: uninstall install
 

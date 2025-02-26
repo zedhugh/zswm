@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.24)
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BINARY "zswm")
-add_compile_definitions(LOG_FILE="/home/zedhugh/zswm-log.txt")
+add_compile_definitions(LOG_FILE="$ENV{HOME}/zswm-log.txt")
 
 # add flags
 add_compile_options(-g)
