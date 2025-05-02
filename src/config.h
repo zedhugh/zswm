@@ -6,16 +6,10 @@
 #ifndef __ZS_WM_CONFIG__
 #define __ZS_WM_CONFIG__
 
-typedef struct {
-    xcb_mod_mask_t modifier;
-    xcb_keysym_t keysym;
-    void (*func)(const Arg *);
-    const Arg arg;
-} Key;
+static const char *const fontfamilies[] = {"Emacs Simsun", "Terminus"};
 
-static char *fontfamilies[] = {"Emacs Simsun", "Terminus"};
-/* static char *font_families[] = { "Terminus", "Emacs Simsun" }; */
-static int fontsize = 12;
+/* static char *const font_families[] = { "Terminus", "Emacs Simsun" }; */
+static const int fontsize = 12;
 
 static char *tags[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
 
@@ -26,7 +20,7 @@ static const char col_gray2[] = "#444444";
 static const char col_gray3[] = "#bbbbbb";
 static const char col_gray4[] = "#eeeeee";
 static const char col_cyan[] = "#005577";
-static const char *colors[SchemeLast][ColLast] = {
+static const char *const colors[SchemeLast][ColLast] = {
     [SchemeNorm] = {col_gray3, col_gray1, col_gray2},
     [SchemeSel] = {col_gray4, col_cyan, col_cyan},
 };

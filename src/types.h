@@ -73,4 +73,11 @@ typedef struct {
     Color color[SchemeLast][ColLast];
 } zswm_global_t;
 
+typedef struct {
+    xcb_mod_mask_t modifier;
+    xcb_keysym_t keysym;
+    void (*func)(const Arg *);
+    const Arg arg;
+} Key;
+
 #endif

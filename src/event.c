@@ -83,7 +83,6 @@ static void keypress(xcb_key_press_event_t *ev) {
 }
 
 static void button_press(xcb_button_press_event_t *ev) {
-    ClickType click = ClkRootWin;
     if (ev->event == global.current_monitor->barwin) {
         int i, x;
         i = x = 0;

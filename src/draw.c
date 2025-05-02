@@ -55,7 +55,7 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
 }
 
 /* public function implementations */
-void init_pango_layout(char **families, size_t length, uint8_t size) {
+void init_pango_layout(const char *const *families, size_t len, uint8_t size) {
     if (barheight)
         return;
 
@@ -66,7 +66,7 @@ void init_pango_layout(char **families, size_t length, uint8_t size) {
     layout = pango_layout_new(context);
     attrs = pango_attr_list_new();
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < len; i++) {
         PangoFontDescription *desc = pango_font_description_new();
         pango_font_description_set_family(desc, families[i]);
         pango_font_description_set_size(desc, size * PANGO_SCALE);
