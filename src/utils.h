@@ -1,9 +1,20 @@
 #include "types.h"
+#include <string.h>
 
 #ifndef __ZS_WM_UTILS__
 #define __ZS_WM_UTILS__
 
-#define LENGTH(X) (sizeof X / sizeof X[0])
+#define LENGTH(X) ((ssize_t)sizeof(X) / (ssize_t)sizeof(X[0]))
+
+/** \brief replace \c NULL strings with empty strings */
+#define NONULL(x) (x ? x : "")
+
+static inline int a_strcmp(const char *a, const char *b) {
+    return strcmp(NONULL(a), NONULL(b));
+}
+
+#define A_STREQ(a, b) (((a) == (b)) || a_strcmp(a, b) == 0)
+#define A_STRNEQ(a, b) (!A_STRNEQ(a, b))
 
 double get_time();
 

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/xcb_cursor.h>
 #include <xcb/xcb_keysyms.h>
 
 #ifndef __ZS_WM_TYPES__
@@ -67,6 +68,7 @@ typedef struct {
     xcb_screen_t *screen;
     xcb_visualtype_t *visual;
     xcb_key_symbols_t *keysymbol;
+    xcb_cursor_context_t *cursor_ctx;
     xcb_cursor_t cursors[CurLast];
     Monitor *monitors;
     Monitor *current_monitor;

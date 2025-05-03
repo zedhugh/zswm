@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xinerama.h>
 #include <xcb/xproto.h>
@@ -16,6 +17,7 @@
 #include "event.h"
 #include "utils.h"
 #include "window.h"
+#include "xcursor.h"
 
 zswm_global_t global;
 
@@ -151,18 +153,14 @@ void init_cursors() {
     xcb_connection_t *conn = global.conn;
     xcb_cursor_t *cursors = global.cursors;
 
-    xcb_font_t font = xcb_generate_id(conn);
-    const char *cursorfont = "cursor";
-    size_t name_len = strlen(cursorfont);
-    xcb_open_font_checked(conn, font, name_len, cursorfont);
+    if (xcb_cursor_context_new(conn, global.screen, &global.cursor_ctx) < 0) {
+        die("Failed to initialize xcb-cursor");
+    }
 
-    int cursor[] = {XC_left_ptr, XC_sizing, XC_fleur};
+    uint16_t cursor[] = {XC_left_ptr, XC_bottom_right_corner, XC_fleur};
 
     for (int i = CurNormal; i < CurLast; i++) {
-        xcb_cursor_t temp_cursor = xcb_generate_id(conn);
-        xcb_create_glyph_cursor_checked(conn, temp_cursor, font, font,
-                                        cursor[i], cursor[i] + 1, 0, 0, 0,
-                                        0xFFFF, 0xFFFF, 0xFFFF);
+        xcb_cursor_t temp_cursor = xcursor_new(global.cursor_ctx, cursor[i]);
         cursors[i] = temp_cursor;
     }
 

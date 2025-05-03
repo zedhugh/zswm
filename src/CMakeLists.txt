@@ -12,11 +12,11 @@ add_compile_options(-Wall)
 
 project(zswm VERSION 2.0 LANGUAGES C)
 
-add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c)
+add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c xcursor.c)
 target_include_directories(${BINARY} PRIVATE ${SOURCE_DIR})
 
 find_package(X11 REQUIRED)
-target_link_libraries(${BINARY} xcb xcb-icccm xcb-keysyms xcb-util xcb-xfixes xcb-xinerama)
+target_link_libraries(${BINARY} xcb xcb-cursor xcb-icccm xcb-keysyms xcb-util xcb-xfixes xcb-xinerama)
 
 find_package(PkgConfig REQUIRED)
 
