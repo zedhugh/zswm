@@ -1,3 +1,4 @@
+#include <glib.h>
 #include <pango/pangocairo.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -73,6 +74,11 @@ typedef struct {
     Monitor *monitors;
     Monitor *current_monitor;
     Color color[SchemeLast][ColLast];
+
+    GMainLoop *loop;
+    GIOChannel *event_channel;
+    guint event_source_id;
+
 } zswm_global_t;
 
 typedef struct {

@@ -10,7 +10,7 @@ add_compile_options(-g)
 add_compile_options(-Wall)
 # add_compile_options(-fsanitize=address)
 
-project(zswm VERSION 2.0 LANGUAGES C)
+project(${BINARY} VERSION 2.0 LANGUAGES C)
 
 add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c xcursor.c)
 target_include_directories(${BINARY} PRIVATE ${SOURCE_DIR})
@@ -19,6 +19,19 @@ find_package(X11 REQUIRED)
 target_link_libraries(${BINARY} xcb xcb-cursor xcb-icccm xcb-keysyms xcb-util xcb-xfixes xcb-xinerama)
 
 find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(GLIB2 glib-2.0 REQUIRED)
+if(GLIB2_FOUND)
+  target_include_directories(${BINARY} SYSTEM PUBLIC ${GLIB2_INCLUDE_DIRS})
+  foreach(DIR IN LISTS GLIB2_INCLUDE_DIRS)
+    # target_include_directories(${BINARY} SYSTEM PUBLIC ${DIR})
+  endforeach()
+
+  target_link_libraries(${BINARY} ${GLIB2_LIBRARIES})
+  foreach(LIB IN LISTS GLIB2_LIBRARIES)
+    # target_link_libraries(${BINARY} ${LIB})
+  endforeach()
+endif()
 
 pkg_check_modules(Cairo cairo REQUIRED)
 if(Cairo_FOUND)

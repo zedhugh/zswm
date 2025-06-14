@@ -1,6 +1,8 @@
 #include <X11/cursorfont.h>
 #include <cairo-xcb.h>
 #include <cairo.h>
+#include <glib.h>
+#include <glibconfig.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -257,6 +259,39 @@ void scan() {
     }
 }
 
+gboolean handle_xcb_event(GIOChannel *channel, GIOCondition condition,
+                          gpointer userdata) {
+    xcb_connection_t *conn = (xcb_connection_t *)userdata;
+    xcb_generic_event_t *event;
+
+    while ((event = xcb_poll_for_event(conn)) != NULL) {
+        if (!global.running) {
+            g_main_loop_quit(global.loop);
+            return FALSE;
+        }
+
+        if (event_handle(event)) {
+            update_monitor_bar(global.monitors);
+        }
+    }
+
+    return TRUE;
+}
+
+void init_xcb_event() {
+    int xcb_fd = xcb_get_file_descriptor(global.conn);
+    GIOChannel *channel = g_io_channel_unix_new(xcb_fd);
+    g_io_channel_set_encoding(channel, NULL, NULL);
+    guint source_id = g_io_add_watch(channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
+                                     handle_xcb_event, global.conn);
+    if (source_id == 0) {
+        die("cannot handle xcb_event");
+    }
+
+    global.event_channel = channel;
+    global.event_source_id = source_id;
+}
+
 int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -310,13 +345,10 @@ int main(int argc, char *argv[]) {
     xcb_flush(conn);
 
     grabkeys();
-    xcb_generic_event_t *event = NULL;
 
-    while (global.running && (event = xcb_wait_for_event(conn))) {
-        if (event_handle(event)) {
-            update_monitor_bar(monitors);
-        }
-    }
+    global.loop = g_main_loop_new(NULL, FALSE);
+    init_xcb_event();
+    g_main_loop_run(global.loop);
 
     if (global.restart) {
         execvp(argv[0], argv);
