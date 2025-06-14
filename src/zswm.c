@@ -17,6 +17,7 @@
 #include "config.h"
 #include "draw.h"
 #include "event.h"
+#include "status.h"
 #include "utils.h"
 #include "window.h"
 #include "xcursor.h"
@@ -292,6 +293,15 @@ void init_xcb_event() {
     global.event_source_id = source_id;
 }
 
+void show_pulse(Pulse pulse) {
+    logger("device: %s\n", pulse.device);
+    logger("avg volume: %d\n", pulse.avg_volume);
+    logger("muted: %d\n", pulse.mute);
+    for (int i = 0; i < LENGTH(pulse.volumes) && pulse.volumes[i] != -1; ++i) {
+        logger("volume[%d]: %d%%\n", i, pulse.volumes[i]);
+    }
+}
+
 int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -348,6 +358,7 @@ int main(int argc, char *argv[]) {
 
     global.loop = g_main_loop_new(NULL, FALSE);
     init_xcb_event();
+    init_pulse(g_main_loop_get_context(global.loop), show_pulse);
     g_main_loop_run(global.loop);
 
     if (global.restart) {

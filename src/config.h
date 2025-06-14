@@ -1,6 +1,8 @@
 #include <X11/keysym.h>
+#include <xcb/xproto.h>
 
 #include "global.h"
+#include "status.h"
 #include "utils.h"
 
 #ifndef __ZS_WM_CONFIG__
@@ -39,10 +41,16 @@ static void quit(const Arg *arg) {
     }
 }
 
+static void toggle_mute(const Arg *arg) { toggle_pulse_mute(); }
+static void change_volume(const Arg *arg) { change_pulse_volume(arg->i); }
+
 static Key keys[] = {
     {XCB_MOD_MASK_4, XK_p, spawn, {.v = dmenucmd}},
     {XCB_MOD_MASK_4, XK_q, quit, {.v = NULL}},
     {XCB_MOD_MASK_4, XK_r, quit, {.i = 1}},
+    {XCB_MOD_MASK_4 | XCB_MOD_MASK_SHIFT, XK_m, toggle_mute},
+    {XCB_MOD_MASK_4, XK_Up, change_volume, {.i = 1}},
+    {XCB_MOD_MASK_4, XK_Down, change_volume, {.i = -1}},
 };
 
 #endif
