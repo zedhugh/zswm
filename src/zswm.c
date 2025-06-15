@@ -4,7 +4,6 @@
 #include <glib.h>
 #include <glibconfig.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
@@ -302,6 +301,12 @@ void show_pulse(Pulse pulse) {
     }
 }
 
+void show_net_speed(NetSpeed speed) {
+    logger("=======================================\n");
+    logger("down: %s, up: %s\n", speed.down, speed.up);
+    logger("rx bytes: %lu, tx bytes: %lu\n", speed.rx_bytes, speed.tx_bytes);
+}
+
 int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -359,6 +364,7 @@ int main(int argc, char *argv[]) {
     global.loop = g_main_loop_new(NULL, FALSE);
     init_xcb_event();
     init_pulse(g_main_loop_get_context(global.loop), show_pulse);
+    init_net_speed(show_net_speed);
     g_main_loop_run(global.loop);
 
     if (global.restart) {

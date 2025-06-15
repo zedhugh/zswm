@@ -1,3 +1,4 @@
+#include "net.h"
 #include "pulse.h"
 
 #ifndef __ZSWM_STATUS_
