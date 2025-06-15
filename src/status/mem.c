@@ -27,6 +27,7 @@ MemUsage calc_mem_usage(MemUsage usage);
 void init_mem_usage(mem_usage_notify cb) {
     will_stop = FALSE;
     mem_usage_listener = cb;
+    update_mem_usage(NULL);
     g_timeout_add_seconds(INTERVAL, update_mem_usage, NULL);
 }
 

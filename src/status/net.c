@@ -40,6 +40,7 @@ void init_net_speed(net_speed_notify cb) {
     inited = FALSE;
     will_stop = FALSE;
     net_speed_listener = cb;
+    update_speed(NULL);
     g_timeout_add_seconds(INTERVAL, update_speed, NULL);
 }
 

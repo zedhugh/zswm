@@ -47,6 +47,7 @@ void init_cpu_usage(cpu_usage_notify cb) {
     inited = FALSE;
     will_stop = FALSE;
     cpu_usage_listener = cb;
+    update_cpu_usage(NULL);
     g_timeout_add_seconds(INTERVAL, update_cpu_usage, NULL);
 }
 
