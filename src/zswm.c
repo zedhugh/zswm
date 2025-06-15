@@ -307,6 +307,14 @@ void show_net_speed(NetSpeed speed) {
     logger("rx bytes: %lu, tx bytes: %lu\n", speed.rx_bytes, speed.tx_bytes);
 }
 
+void show_mem_usage(MemUsage usage) {
+    logger("=================== mem usage ===================\n");
+    logger("mem: %s, percent: %.1f%%\n", usage.mem_used_text,
+           usage.mem_percent);
+    logger("swap: %s, percent: %.1f%%\n", usage.swap_used_text,
+           usage.swap_percent);
+}
+
 int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -365,6 +373,7 @@ int main(int argc, char *argv[]) {
     init_xcb_event();
     init_pulse(g_main_loop_get_context(global.loop), show_pulse);
     init_net_speed(show_net_speed);
+    init_mem_usage(show_mem_usage);
     g_main_loop_run(global.loop);
 
     if (global.restart) {
