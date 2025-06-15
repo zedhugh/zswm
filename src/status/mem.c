@@ -13,7 +13,7 @@
 /*                        file static global variables                       */
 /*****************************************************************************/
 static mem_usage_notify mem_usage_listener = NULL;
-static gboolean will_stop = FALSE;
+static guint timer = 0;
 
 /*****************************************************************************/
 /*                        private function declaration                       */
@@ -25,14 +25,13 @@ MemUsage calc_mem_usage(MemUsage usage);
 /*                                 interface                                 */
 /*****************************************************************************/
 void init_mem_usage(mem_usage_notify cb) {
-    will_stop = FALSE;
     mem_usage_listener = cb;
     update_mem_usage(NULL);
-    g_timeout_add_seconds(INTERVAL, update_mem_usage, NULL);
+    timer = g_timeout_add_seconds(INTERVAL, update_mem_usage, NULL);
 }
 
 void clean_mem_usage(void) {
-    will_stop = TRUE;
+    g_source_remove(timer);
     mem_usage_listener = NULL;
 }
 
@@ -40,10 +39,6 @@ void clean_mem_usage(void) {
 /*                        private function definition                        */
 /*****************************************************************************/
 gboolean update_mem_usage(gpointer data) {
-    if (will_stop) {
-        return FALSE;
-    }
-
     gchar *contents = NULL;
     gsize length = 0;
     GError *error = NULL;

@@ -25,7 +25,7 @@ static net_speed_notify net_speed_listener = NULL;
 static NetStats prev = {0};
 static NetStats curr = {0};
 static gboolean inited = FALSE;
-static gboolean will_stop = FALSE;
+static guint timer = 0;
 
 /*****************************************************************************/
 /*                        private function declaration                       */
@@ -38,15 +38,14 @@ NetSpeed calc_speed(NetStats current, NetStats previous);
 /*****************************************************************************/
 void init_net_speed(net_speed_notify cb) {
     inited = FALSE;
-    will_stop = FALSE;
     net_speed_listener = cb;
     update_speed(NULL);
-    g_timeout_add_seconds(INTERVAL, update_speed, NULL);
+    timer = g_timeout_add_seconds(INTERVAL, update_speed, NULL);
 }
 
 void clean_net_speed(void) {
+    g_source_remove(timer);
     inited = FALSE;
-    will_stop = TRUE;
     net_speed_listener = NULL;
 }
 
@@ -54,10 +53,6 @@ void clean_net_speed(void) {
 /*                        private function definition                        */
 /*****************************************************************************/
 gboolean update_speed(gpointer data) {
-    if (will_stop) {
-        return FALSE;
-    }
-
     gchar *contents = NULL;
     gsize length = 0;
     GError *error = NULL;

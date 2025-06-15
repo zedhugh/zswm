@@ -30,7 +30,7 @@ typedef struct {
 /*                        file static global variables                       */
 /*****************************************************************************/
 static cpu_usage_notify cpu_usage_listener = NULL;
-static gboolean will_stop = FALSE;
+static guint timer = 0;
 static CPUStat prev_cpu_stat = {0};
 static gboolean inited = FALSE;
 
@@ -45,15 +45,14 @@ double calc_cpu_usage(CPUStat curr, CPUStat prev);
 /*****************************************************************************/
 void init_cpu_usage(cpu_usage_notify cb) {
     inited = FALSE;
-    will_stop = FALSE;
     cpu_usage_listener = cb;
     update_cpu_usage(NULL);
-    g_timeout_add_seconds(INTERVAL, update_cpu_usage, NULL);
+    timer = g_timeout_add_seconds(INTERVAL, update_cpu_usage, NULL);
 }
 
 void clean_cpu_usage(void) {
+    g_source_remove(timer);
     inited = FALSE;
-    will_stop = TRUE;
     cpu_usage_listener = NULL;
 }
 
@@ -61,10 +60,6 @@ void clean_cpu_usage(void) {
 /*                        private function definition                        */
 /*****************************************************************************/
 gboolean update_cpu_usage(gpointer data) {
-    if (will_stop) {
-        return FALSE;
-    }
-
     gchar *contents = NULL;
     gsize length = 0;
     GError *error = NULL;
