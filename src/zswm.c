@@ -315,6 +315,10 @@ void show_mem_usage(MemUsage usage) {
            usage.swap_percent);
 }
 
+void show_cpu_load(double percent) {
+    logger("=================== cpu: %.0lf ===================\n", percent);
+}
+
 int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -374,6 +378,7 @@ int main(int argc, char *argv[]) {
     init_pulse(g_main_loop_get_context(global.loop), show_pulse);
     init_net_speed(show_net_speed);
     init_mem_usage(show_mem_usage);
+    init_cpu_usage(show_cpu_load);
     g_main_loop_run(global.loop);
 
     if (global.restart) {

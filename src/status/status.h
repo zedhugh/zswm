@@ -1,3 +1,4 @@
+#include "cpu.h"
 #include "mem.h"
 #include "net.h"
 #include "pulse.h"

@@ -1,7 +1,7 @@
 set(LIB_STATUS "zswm-status")
 set(LIB_STATUS_NAME ${LIB_STATUS} PARENT_SCOPE)
 
-add_library(${LIB_STATUS} STATIC pulse.c net.c utils.c mem.c)
+add_library(${LIB_STATUS} STATIC pulse.c net.c utils.c mem.c cpu.c)
 target_include_directories(${LIB_STATUS} PUBLIC include)
 
 target_link_libraries(${LIB_STATUS} m)
