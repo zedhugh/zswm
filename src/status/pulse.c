@@ -1,5 +1,4 @@
 #include <glib.h>
-#include <math.h>
 #include <pulse/channelmap.h>
 #include <pulse/context.h>
 #include <pulse/def.h>
@@ -12,6 +11,7 @@
 #include <string.h>
 
 #include "pulse.h"
+#include "utils.h"
 
 /*****************************************************************************/
 /*                        file static global variables                       */
@@ -129,9 +129,6 @@ void subscribe_callback(pa_context *c, pa_subscription_event_type_t t,
         pa_context_get_server_info(c, server_info_callback, NULL);
     }
 }
-
-#define volume_to_percent(v) ((int)round((double)(v) * 100 / PA_VOLUME_NORM))
-#define LENGTH(X) ((ssize_t)sizeof(X) / (ssize_t)sizeof(X[0]))
 
 Pulse parse_sink(pa_sink_info i) {
     Pulse p = {

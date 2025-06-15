@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "net.h"
+#include "utils.h"
 
 #define NET_FILE "/proc/net/dev"
 #define INTERVAL 1
@@ -102,21 +103,6 @@ gboolean update_speed(gpointer data) {
     g_strfreev(lines);
 
     return TRUE;
-}
-
-#define LENGTH(X) ((ssize_t)sizeof(X) / (ssize_t)sizeof(X[0]))
-
-static char *units[] = {"B", "K", "M", "G"};
-static double radix = 1024.0;
-void bytes_to_readable_size(uint64_t bytes, char *str) {
-    double size = (double)bytes;
-    int i = 0;
-    while (size > radix) {
-        size /= radix;
-        ++i;
-    }
-
-    sprintf(str, "%.1lf%s", size, units[i]);
 }
 
 NetSpeed calc_speed(NetStats current, NetStats previous) {
