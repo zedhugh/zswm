@@ -17,6 +17,7 @@
 #include "draw.h"
 #include "event.h"
 #include "status.h"
+#include "time.h"
 #include "utils.h"
 #include "window.h"
 #include "xcursor.h"
@@ -319,6 +320,11 @@ void show_cpu_load(double percent) {
     logger("=================== cpu: %.0lf ===================\n", percent);
 }
 
+void show_time(StatusTime time) {
+    logger("================== time ==================\n");
+    logger("date: %s\ntime: %s\nfull: %s\n", time.date, time.time, time.full);
+}
+
 int main(int argc, char *argv[]) {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
 
@@ -379,6 +385,7 @@ int main(int argc, char *argv[]) {
     init_net_speed(show_net_speed);
     init_mem_usage(show_mem_usage);
     init_cpu_usage(show_cpu_load);
+    init_status_time(show_time);
     g_main_loop_run(global.loop);
 
     if (global.restart) {
