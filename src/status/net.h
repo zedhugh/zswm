@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifndef __ZSWM_NET_
@@ -12,9 +13,6 @@ typedef struct {
 
 } NetSpeed;
 
-typedef void (*net_speed_notify)(NetSpeed speed);
-
-void init_net_speed(net_speed_notify cb);
-void clean_net_speed(void);
+bool get_net_speed(uint32_t interval, NetSpeed *speed, GError *error);
 
 #endif

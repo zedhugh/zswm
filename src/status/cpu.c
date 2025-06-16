@@ -8,7 +8,6 @@
 #include "utils.h"
 
 #define CPU_FILE "/proc/stat"
-#define INTERVAL 1
 
 /*****************************************************************************/
 /*                        file private data structure                        */
@@ -29,43 +28,22 @@ typedef struct {
 /*****************************************************************************/
 /*                        file static global variables                       */
 /*****************************************************************************/
-static cpu_usage_notify cpu_usage_listener = NULL;
-static guint timer = 0;
 static CPUStat prev_cpu_stat = {0};
 static gboolean inited = FALSE;
 
 /*****************************************************************************/
 /*                        private function declaration                       */
 /*****************************************************************************/
-gboolean update_cpu_usage(gpointer data);
 double calc_cpu_usage(CPUStat curr, CPUStat prev);
 
 /*****************************************************************************/
 /*                                 interface                                 */
 /*****************************************************************************/
-void init_cpu_usage(cpu_usage_notify cb) {
-    inited = FALSE;
-    cpu_usage_listener = cb;
-    update_cpu_usage(NULL);
-    timer = g_timeout_add_seconds(INTERVAL, update_cpu_usage, NULL);
-}
-
-void clean_cpu_usage(void) {
-    g_source_remove(timer);
-    inited = FALSE;
-    cpu_usage_listener = NULL;
-}
-
-/*****************************************************************************/
-/*                        private function definition                        */
-/*****************************************************************************/
-gboolean update_cpu_usage(gpointer data) {
+bool get_cpu_usage(double *usage, GError *error) {
     gchar *contents = NULL;
     gsize length = 0;
-    GError *error = NULL;
 
     if (!g_file_get_contents(CPU_FILE, &contents, &length, &error)) {
-        g_printerr("Error reading %s: %s\n", CPU_FILE, error->message);
         return FALSE;
     }
 
@@ -92,15 +70,16 @@ gboolean update_cpu_usage(gpointer data) {
 
     double percent = calc_cpu_usage(stat, prev_cpu_stat);
     prev_cpu_stat = stat;
-    if (cpu_usage_listener != NULL) {
-        cpu_usage_listener(percent);
-    }
+    *usage = percent;
 
     g_strfreev(lines);
 
     return TRUE;
 }
 
+/*****************************************************************************/
+/*                        private function definition                        */
+/*****************************************************************************/
 double calc_cpu_usage(CPUStat curr, CPUStat prev) {
     uint64_t curr_idle = curr.idle + curr.iowait;
     uint64_t curr_total = curr.user + curr.nice + curr.system + curr.idle +

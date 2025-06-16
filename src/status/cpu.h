@@ -1,8 +1,14 @@
+#include <glib.h>
+#include <stdbool.h>
+
 #ifndef __ZSWM_CPU_
 #define __ZSWM_CPU_
 
-typedef void (*cpu_usage_notify)(double percent);
-void init_cpu_usage(cpu_usage_notify cb);
-void clean_cpu_usage(void);
+/**
+ * @brief get cpu load of percent
+ *
+ * @param percent percent of usage, between 0 to 100
+ */
+bool get_cpu_usage(double *percent, GError *error);
 
 #endif

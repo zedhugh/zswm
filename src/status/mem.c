@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <glibconfig.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -7,45 +8,21 @@
 #include "utils.h"
 
 #define MEM_FILE "/proc/meminfo"
-#define INTERVAL 1
-
-/*****************************************************************************/
-/*                        file static global variables                       */
-/*****************************************************************************/
-static mem_usage_notify mem_usage_listener = NULL;
-static guint timer = 0;
 
 /*****************************************************************************/
 /*                        private function declaration                       */
 /*****************************************************************************/
-gboolean update_mem_usage(gpointer data);
 MemUsage calc_mem_usage(MemUsage usage);
 
 /*****************************************************************************/
 /*                                 interface                                 */
 /*****************************************************************************/
-void init_mem_usage(mem_usage_notify cb) {
-    mem_usage_listener = cb;
-    update_mem_usage(NULL);
-    timer = g_timeout_add_seconds(INTERVAL, update_mem_usage, NULL);
-}
-
-void clean_mem_usage(void) {
-    g_source_remove(timer);
-    mem_usage_listener = NULL;
-}
-
-/*****************************************************************************/
-/*                        private function definition                        */
-/*****************************************************************************/
-gboolean update_mem_usage(gpointer data) {
+bool get_mem_usage(MemUsage *u, GError *error) {
     gchar *contents = NULL;
     gsize length = 0;
-    GError *error = NULL;
 
     if (!g_file_get_contents(MEM_FILE, &contents, &length, &error)) {
-        g_printerr("Error reading %s: %s\n", MEM_FILE, error->message);
-        return FALSE;
+        return false;
     }
 
     gchar **lines = g_strsplit(contents, "\n", 0);
@@ -73,17 +50,16 @@ gboolean update_mem_usage(gpointer data) {
             usage.s_reclaimable = kb;
         }
     }
-    usage = calc_mem_usage(usage);
-
-    if (mem_usage_listener != NULL) {
-        mem_usage_listener(usage);
-    }
+    *u = calc_mem_usage(usage);
 
     g_strfreev(lines);
 
-    return TRUE;
+    return true;
 }
 
+/*****************************************************************************/
+/*                        private function definition                        */
+/*****************************************************************************/
 MemUsage calc_mem_usage(MemUsage usage) {
     MemUsage u = usage;
     u.mem_used =

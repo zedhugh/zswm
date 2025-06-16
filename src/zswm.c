@@ -17,7 +17,6 @@
 #include "draw.h"
 #include "event.h"
 #include "status.h"
-#include "time.h"
 #include "utils.h"
 #include "window.h"
 #include "xcursor.h"
@@ -293,36 +292,29 @@ void init_xcb_event() {
     global.event_source_id = source_id;
 }
 
-void show_pulse(Pulse pulse) {
-    logger("device: %s\n", pulse.device);
-    logger("avg volume: %d\n", pulse.avg_volume);
-    logger("muted: %d\n", pulse.mute);
+void show_status(Status status) {
+    Pulse pulse = status.pulse;
+    logger("=========================== status ===========================\n");
+    logger("== pulse device: %s\n", pulse.device);
+    logger("== pulse avg volume: %d\n", pulse.avg_volume);
+    logger("== pulse muted: %d\n", pulse.mute);
     for (int i = 0; i < LENGTH(pulse.volumes) && pulse.volumes[i] != -1; ++i) {
-        logger("volume[%d]: %d%%\n", i, pulse.volumes[i]);
+        logger("== pulse volume[%d]: %d%%\n", i, pulse.volumes[i]);
     }
-}
 
-void show_net_speed(NetSpeed speed) {
-    logger("=======================================\n");
-    logger("down: %s, up: %s\n", speed.down, speed.up);
-    logger("rx bytes: %lu, tx bytes: %lu\n", speed.rx_bytes, speed.tx_bytes);
-}
+    NetSpeed speed = status.net_speed;
+    logger("== down: %s, up: %s\n", speed.down, speed.up);
+    logger("== rx bytes: %lu, tx bytes: %lu\n", speed.rx_bytes, speed.tx_bytes);
 
-void show_mem_usage(MemUsage usage) {
-    logger("=================== mem usage ===================\n");
-    logger("mem: %s, percent: %.1f%%\n", usage.mem_used_text,
+    MemUsage usage = status.mem_usage;
+    logger("== mem: %s, percent: %.1f%%\n", usage.mem_used_text,
            usage.mem_percent);
-    logger("swap: %s, percent: %.1f%%\n", usage.swap_used_text,
+    logger("== swap: %s, percent: %.1f%%\n", usage.swap_used_text,
            usage.swap_percent);
-}
 
-void show_cpu_load(double percent) {
-    logger("=================== cpu: %.0lf ===================\n", percent);
-}
-
-void show_time(StatusTime time) {
-    logger("================== time ==================\n");
-    logger("date: %s\ntime: %s\nfull: %s\n", time.date, time.time, time.full);
+    logger("== cpu: %.0lf\n", status.cpu_usage_percent);
+    logger("== time: %s\n", status.time);
+    logger("========================= status end =========================\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -381,11 +373,7 @@ int main(int argc, char *argv[]) {
 
     global.loop = g_main_loop_new(NULL, FALSE);
     init_xcb_event();
-    init_pulse(g_main_loop_get_context(global.loop), show_pulse);
-    init_net_speed(show_net_speed);
-    init_mem_usage(show_mem_usage);
-    init_cpu_usage(show_cpu_load);
-    init_status_time(show_time);
+    init_status(g_main_loop_get_context(global.loop), show_status);
     g_main_loop_run(global.loop);
 
     if (global.restart) {

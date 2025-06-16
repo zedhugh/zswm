@@ -1,3 +1,5 @@
+#include <glib.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifndef __ZSWM_MEM_
@@ -22,9 +24,6 @@ typedef struct {
 
 } MemUsage;
 
-typedef void (*mem_usage_notify)(MemUsage usage);
-
-void init_mem_usage(mem_usage_notify cb);
-void clean_mem_usage(void);
+bool get_mem_usage(MemUsage *usage, GError *error);
 
 #endif
