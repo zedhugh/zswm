@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <math.h>
 #include <pulse/channelmap.h>
 #include <pulse/context.h>
 #include <pulse/def.h>
@@ -11,7 +12,6 @@
 #include <string.h>
 
 #include "pulse.h"
-#include "utils.h"
 
 /*****************************************************************************/
 /*                        file static global variables                       */
@@ -130,6 +130,9 @@ void subscribe_callback(pa_context *c, pa_subscription_event_type_t t,
     }
 }
 
+#define LENGTH(X) ((ssize_t)sizeof(X) / (ssize_t)sizeof(X[0]))
+#define volume_to_percent(v) ((int)round((double)(v) * 100 / PA_VOLUME_NORM))
+
 Pulse parse_sink(pa_sink_info i) {
     Pulse p = {
         .index = i.index,
@@ -137,7 +140,7 @@ Pulse parse_sink(pa_sink_info i) {
         .volumes = {-1},
         .avg_volume = volume_to_percent(pa_cvolume_avg(&i.volume)),
     };
-    strncpy(p.device, i.description, LENGTH(p.device));
+    strncpy(p.device, i.description, sizeof(p.device));
 
     int len = 0;
     for (uint8_t ch = 0; ch < LENGTH(p.volumes); ++ch) {
@@ -164,7 +167,7 @@ Pulse parse_sink(pa_sink_info i) {
         unsigned long len = strlen(value);
 
         if (len && (len < strlen(p.device))) {
-            strncpy(p.device, value, LENGTH(p.device));
+            strncpy(p.device, value, sizeof(p.device));
         }
     }
 

@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "cpu.h"
-#include "utils.h"
 
 #define CPU_FILE "/proc/stat"
 
@@ -53,7 +52,7 @@ bool get_cpu_usage(double *usage, GError *error) {
     char cpu_line[256];
     for (gchar **line = lines; *line != NULL; ++line) {
         if (strncmp(*line, "cpu ", 4) == 0) {
-            strncpy(cpu_line, *line, LENGTH(cpu_line));
+            strncpy(cpu_line, *line, sizeof(cpu_line));
             break;
         }
     }
