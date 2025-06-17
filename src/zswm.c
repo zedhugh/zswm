@@ -412,6 +412,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    init_pango_layout(fontfamilies, LENGTH(fontfamilies), fontsize);
+
     cairo_surface_t *surface = cairo_xcb_surface_create(
         conn, screen->root, visual, screen->width_in_pixels,
         screen->height_in_pixels);
@@ -428,8 +430,6 @@ int main(int argc, char *argv[]) {
 
     Monitor *monitors = monitor_scan(conn);
     print_monitor_info(monitors);
-
-    init_pango_layout(fontfamilies, LENGTH(fontfamilies), fontsize);
 
     global.monitors = monitors;
     global.current_monitor = monitors;
