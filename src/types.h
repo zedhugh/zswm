@@ -7,6 +7,8 @@
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_keysyms.h>
 
+#include "status.h"
+
 #ifndef __ZS_WM_TYPES__
 #define __ZS_WM_TYPES__
 
@@ -63,6 +65,15 @@ enum { ColFg, ColBg, ColBorder, ColLast };  /* color scheme index */
 typedef enum { ClkTagBar, ClkRootWin } ClickType;
 
 typedef struct {
+    cairo_surface_t *net_down;
+    cairo_surface_t *net_up;
+    cairo_surface_t *volume;
+    cairo_surface_t *memory;
+    cairo_surface_t *cpu;
+    cairo_surface_t *clock;
+} status_resource_t;
+
+typedef struct {
     bool running;
     bool restart;
     xcb_connection_t *conn;
@@ -79,6 +90,8 @@ typedef struct {
     GIOChannel *event_channel;
     guint event_source_id;
 
+    Status status;
+    status_resource_t status_resource;
 } zswm_global_t;
 
 typedef struct {

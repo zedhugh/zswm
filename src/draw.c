@@ -1,5 +1,7 @@
 #include <cairo.h>
+#include <math.h>
 #include <pango/pangocairo.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "types.h"
@@ -148,4 +150,32 @@ Color create_color(xcb_connection_t *conn, xcb_colormap_t cmap,
     free(reply);
 
     return color;
+}
+
+cairo_surface_t *create_png_surface(const char *png_path, uint16_t width,
+                                    uint16_t height) {
+    cairo_surface_t *png = cairo_image_surface_create_from_png(png_path);
+    if (cairo_surface_status(png) != CAIRO_STATUS_SUCCESS) {
+        return NULL;
+    }
+
+    int w = cairo_image_surface_get_width(png);
+    int h = cairo_image_surface_get_height(png);
+    double scale_x = (double)width / w;
+    double scale_y = (double)height / h;
+    double scale = fmax(scale_x, scale_y);
+    double x = (w * scale - width) / 2;
+    double y = (h * scale - height) / 2;
+
+    cairo_surface_t *surface =
+        cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+    cairo_t *cr = cairo_create(surface);
+    cairo_save(cr);
+    cairo_scale(cr, scale, scale);
+    cairo_set_source_surface(cr, png, x, y);
+    cairo_paint(cr);
+    cairo_restore(cr);
+    cairo_destroy(cr);
+
+    return surface;
 }

@@ -1,0 +1,6 @@
+#define NET_DOWN_PATH "@NET_DOWN_ICON@"
+#define NET_UP_PATH "@NET_UP_ICON@"
+#define SPEAKER_PATH "@SPEAKER_ICON@"
+#define CPU_PATH "@CPU_ICON@"
+#define MEMORY_PATH "@MEMORY_ICON@"
+#define CLOCK_PATH "@CLOCK_ICON@"

@@ -3,8 +3,11 @@
 #include <cairo.h>
 #include <glib.h>
 #include <glibconfig.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
@@ -13,6 +16,7 @@
 #include <xcb/xinerama.h>
 #include <xcb/xproto.h>
 
+#include "assets.h"
 #include "config.h"
 #include "draw.h"
 #include "event.h"
@@ -25,10 +29,12 @@ zswm_global_t global;
 
 static void init_cursors(void);
 static void init_bar_window(Monitor *monitor, uint8_t barheight);
+static bool init_status_resource(uint16_t width, uint16_t heigth);
 static xcb_screen_t *check_other_wm(xcb_connection_t *connection);
 static void copy_screen_info(Monitor *m, xcb_xinerama_screen_info_t *s);
 static Monitor *monitor_scan(xcb_connection_t *conn);
 static void draw_tags(Monitor *monitor, Color scheme[SchemeLast][ColLast]);
+static void draw_status(Monitor *monitor, Status status, Color *color);
 static void update_monitor_bar(Monitor *monitor);
 
 xcb_screen_t *check_other_wm(xcb_connection_t *connection) {
@@ -107,11 +113,52 @@ void draw_tags(Monitor *monitor, Color scheme[SchemeLast][ColLast]) {
     }
 }
 
+void draw_status(Monitor *monitor, Status status, Color *color) {
+    char cpu[10], mem[64], volume[600];
+    sprintf(cpu, "%.1lf", status.cpu_usage_percent);
+    sprintf(mem, "%s(%.1f%%)", status.mem_usage.mem_used_text,
+            status.mem_usage.mem_percent);
+    sprintf(volume, "%d%% %s", status.pulse.avg_volume, status.pulse.device);
+
+    char *text_list[] = {
+        status.net_speed.down, status.net_speed.up, volume, mem, cpu,
+        status.time,
+    };
+    cairo_surface_t *icons[] = {
+        global.status_resource.net_down, global.status_resource.net_up,
+        global.status_resource.volume,   global.status_resource.memory,
+        global.status_resource.cpu,      global.status_resource.clock};
+
+    int x = monitor->mw;
+    int icon_width = get_barheight();
+    char *text = NULL;
+    cairo_surface_t *icon = NULL;
+    cairo_t *cr = monitor->cr;
+
+    for (int i = LENGTH(text_list) - 1; i >= 0; --i) {
+        text = text_list[i];
+        icon = icons[i];
+        if (!strlen(text)) {
+            continue;
+        }
+
+        x -= get_text_width(text);
+        draw_text(cr, text, color, x);
+
+        if (icon) {
+            x -= icon_width;
+            cairo_set_source_surface(cr, icon, x, 0);
+            cairo_paint(cr);
+        }
+    }
+}
+
 void update_monitor_bar(Monitor *monitor) {
     for (Monitor *mon = monitor; mon; mon = mon->next) {
         Color bg = global.color[SchemeNorm][ColBg];
         draw_bg(mon->cr, bg, 0, 0, mon->mw, get_barheight());
         draw_tags(mon, global.color);
+        draw_status(mon, global.status, global.color[SchemeNorm]);
         cairo_surface_flush(mon->surface);
     }
     xcb_flush(global.conn);
@@ -223,6 +270,29 @@ void init_bar_window(Monitor *monitor, uint8_t height) {
     }
 }
 
+bool init_status_resource(uint16_t width, uint16_t heigth) {
+    cairo_surface_t *net_down =
+        create_png_surface(NET_DOWN_PATH, width, heigth);
+    cairo_surface_t *net_up = create_png_surface(NET_UP_PATH, width, heigth);
+    cairo_surface_t *speaker = create_png_surface(SPEAKER_PATH, width, heigth);
+    cairo_surface_t *mem = create_png_surface(MEMORY_PATH, width, heigth);
+    cairo_surface_t *cpu = create_png_surface(CPU_PATH, width, heigth);
+    cairo_surface_t *clock = create_png_surface(CLOCK_PATH, width, heigth);
+
+    if (!net_down || !net_up || !speaker || !mem || !cpu || !clock) {
+        return false;
+    }
+
+    global.status_resource.net_down = net_down;
+    global.status_resource.net_up = net_up;
+    global.status_resource.volume = speaker;
+    global.status_resource.memory = mem;
+    global.status_resource.cpu = cpu;
+    global.status_resource.clock = clock;
+
+    return true;
+}
+
 void scan() {
     xcb_connection_t *conn = global.conn;
     xcb_window_t root = global.screen->root;
@@ -315,6 +385,9 @@ void show_status(Status status) {
     logger("== cpu: %.0lf\n", status.cpu_usage_percent);
     logger("== time: %s\n", status.time);
     logger("========================= status end =========================\n");
+
+    global.status = status;
+    update_monitor_bar(global.monitors);
 }
 
 int main(int argc, char *argv[]) {
@@ -361,8 +434,10 @@ int main(int argc, char *argv[]) {
     global.monitors = monitors;
     global.current_monitor = monitors;
 
+    int bar_height = get_barheight();
     init_cursors();
-    init_bar_window(monitors, get_barheight());
+    init_bar_window(monitors, bar_height);
+    init_status_resource(bar_height, bar_height);
     update_monitor_bar(monitors);
 
     scan();
