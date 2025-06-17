@@ -11,9 +11,10 @@
 static const char *const fontfamilies = "Terminus, Emacs Simsun";
 static const int fontsize = 15;
 
-static char *tags[] = {"1 你好", "2", "3", "4", "5", "6", "7", "8", "9"};
-static const int tag_lrpad = 2; /* left and right padding of tag */
-static const int bar_tbpad = 2; /* top and bottom padding of bar */
+static char *tags[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
+static const int tag_lrpad = 10; /* left and right padding of tag */
+static const int status_lrpad = 6; /* left and right padding of status */
+static const int bar_tbpad = 3;    /* top and bottom padding of bar */
 
 #define TAGMASK ((1 << LENGTH(tags)) - 1)
 

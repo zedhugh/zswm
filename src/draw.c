@@ -1,6 +1,7 @@
 #include <cairo.h>
 #include <math.h>
 #include <pango/pango-font.h>
+#include <pango/pango-layout.h>
 #include <pango/pangocairo.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -10,7 +11,13 @@
 
 #define COLOR_MAX 0xFFFF
 
+typedef struct {
+    int width;
+    int height;
+} Size;
+
 /* static function declarations */
+static Size get_layout_size();
 static PangoRectangle get_layout_rect();
 static PangoAttribute *create_pango_fg_attr(PangoColor color);
 static void set_cairo_color(cairo_t *cr, PangoColor color);
@@ -18,21 +25,26 @@ static void set_cairo_color(cairo_t *cr, PangoColor color);
 /* static variables */
 static PangoLayout *layout;
 static PangoAttrList *attrs;
-static uint8_t barheight = 0;
-static uint8_t lrpad;
+static uint8_t text_height = 0;
 
 /* static function implementations */
+Size get_layout_size() {
+    Size size;
+    pango_layout_get_pixel_size(layout, &size.width, &size.height);
+    return size;
+}
+
 PangoRectangle get_layout_rect() {
     PangoRectangle rect;
 
     PangoRectangle ir, lr;
-    pango_layout_get_extents(layout, &ir, &lr);
-    int width = MAX(PANGO_PIXELS(ir.width), PANGO_PIXELS(lr.width));
-    int height = MIN(PANGO_PIXELS(ir.height), PANGO_PIXELS(lr.height));
-    int iascent = PANGO_PIXELS(PANGO_ASCENT(ir));
-    int lascent = PANGO_PIXELS(PANGO_ASCENT(lr));
+    pango_layout_get_pixel_extents(layout, &ir, &lr);
+    int width = MAX(ir.width, lr.width);
+    int height = MIN(ir.height, lr.height);
+    int iascent = PANGO_ASCENT(ir);
+    int lascent = PANGO_ASCENT(lr);
     int ascent = MIN(iascent, lascent);
-    int y = ascent + (barheight - height) / 2;
+    int y = ascent + (text_height - height) / 2;
 
     rect.x = 0;
     rect.y = y;
@@ -58,9 +70,10 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
 }
 
 /* public function implementations */
-void init_pango_layout(const char *const families, uint8_t size) {
-    if (barheight)
-        return;
+uint8_t init_pango_layout(const char *const families, uint8_t size) {
+    if (text_height) {
+        return text_height;
+    }
 
     PangoFontMap *fontmap = pango_cairo_font_map_new();
     PangoContext *context = pango_font_map_create_context(fontmap);
@@ -83,42 +96,39 @@ void init_pango_layout(const char *const families, uint8_t size) {
     int descent = PANGO_PIXELS(pango_font_metrics_get_descent(metrics));
 
     int inner_bh = MIN(height, ascent + descent);
-    barheight = MAX(inner_bh, barheight);
+    text_height = MAX(inner_bh, text_height);
 
     free(desc);
     free(metrics);
 
     pango_layout_set_attributes(layout, attrs);
-
-    lrpad = barheight / 2 - 1;
-    if (barheight % 2) {
-        barheight += 1;
-    }
+    return text_height;
 }
-
-uint8_t get_barheight() { return barheight; }
 
 int get_text_width(const char *text) {
     pango_layout_set_text(layout, text, -1);
     PangoRectangle rect = get_layout_rect();
 
-    return rect.width + 2 * lrpad;
+    return rect.width;
 }
 
-void draw_text(cairo_t *cr, const char *text, Color scheme[ColLast], int x) {
+void draw_text(cairo_t *cr, const char *text, Color scheme[ColLast], int x,
+               int y, int width, int height, bool left_align) {
     pango_layout_set_text(layout, text, -1);
     PangoColor fgcolor = scheme[ColFg].pango_color;
     PangoAttribute *fg = create_pango_fg_attr(fgcolor);
     pango_attr_list_change(attrs, fg);
     PangoRectangle rect = get_layout_rect();
 
-    cairo_move_to(cr, x, 0);
-    cairo_rectangle(cr, x, 0, rect.width + lrpad * 2, barheight);
+    cairo_move_to(cr, x, y);
+    cairo_rectangle(cr, x, 0, width, height);
     set_cairo_color(cr, scheme[ColBg].pango_color);
     cairo_fill(cr);
 
+    double tx = left_align ? 0 : (double)(width - rect.width) / 2;
+    double ty = (double)(height - rect.height) / 2;
     pango_cairo_update_layout(cr, layout);
-    cairo_move_to(cr, x + lrpad, rect.y);
+    cairo_move_to(cr, x + tx, y + ty);
     pango_cairo_show_layout(cr, layout);
 }
 

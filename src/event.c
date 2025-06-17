@@ -87,7 +87,7 @@ static void button_press(xcb_button_press_event_t *ev) {
         int i, x;
         i = x = 0;
         do {
-            x += get_text_width(tags[i]);
+            x += get_text_width(tags[i]) + tag_lrpad * 2;
         } while (ev->event_x >= x && (++i) < LENGTH(tags));
 
         if (i < LENGTH(tags)) {

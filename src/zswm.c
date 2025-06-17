@@ -27,6 +27,8 @@
 
 zswm_global_t global;
 
+static uint8_t bar_height = 0;
+
 static void init_cursors(void);
 static void init_bar_window(Monitor *monitor, uint8_t barheight);
 static bool init_status_resource(uint16_t width, uint16_t heigth);
@@ -101,15 +103,16 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
 }
 
 void draw_tags(Monitor *monitor, Color scheme[SchemeLast][ColLast]) {
-    int x = 0;
+    int x = 0, width = 0;
     Color *color;
 
     for (int i = 0; i < LENGTH(tags); i++) {
         uint16_t sel = (monitor->seltags >> i) & 1;
         color = scheme[sel ? SchemeSel : SchemeNorm];
         const char *tag = tags[i];
-        draw_text(monitor->cr, tag, color, x);
-        x += get_text_width(tag);
+        width = get_text_width(tag) + tag_lrpad * 2;
+        draw_text(monitor->cr, tag, color, x, 0, width, bar_height, false);
+        x += width;
     }
 }
 
@@ -130,7 +133,8 @@ void draw_status(Monitor *monitor, Status status, Color *color) {
         global.status_resource.cpu,      global.status_resource.clock};
 
     int x = monitor->mw;
-    int icon_width = get_barheight();
+    int width = 0;
+    int icon_width = bar_height;
     char *text = NULL;
     cairo_surface_t *icon = NULL;
     cairo_t *cr = monitor->cr;
@@ -142,21 +146,23 @@ void draw_status(Monitor *monitor, Status status, Color *color) {
             continue;
         }
 
-        x -= get_text_width(text);
-        draw_text(cr, text, color, x);
+        width = get_text_width(text);
+        x -= width + (LENGTH(text_list) - 1 ? status_lrpad : 0);
+        draw_text(cr, text, color, x, 0, width, bar_height, true);
 
         if (icon) {
             x -= icon_width;
             cairo_set_source_surface(cr, icon, x, 0);
             cairo_paint(cr);
         }
+        x -= status_lrpad;
     }
 }
 
 void update_monitor_bar(Monitor *monitor) {
     for (Monitor *mon = monitor; mon; mon = mon->next) {
         Color bg = global.color[SchemeNorm][ColBg];
-        draw_bg(mon->cr, bg, 0, 0, mon->mw, get_barheight());
+        draw_bg(mon->cr, bg, 0, 0, mon->mw, bar_height);
         draw_tags(mon, global.color);
         draw_status(mon, global.status, global.color[SchemeNorm]);
         cairo_surface_flush(mon->surface);
@@ -412,7 +418,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    init_pango_layout(fontfamilies, fontsize);
+    bar_height = init_pango_layout(fontfamilies, fontsize) + bar_tbpad * 2;
 
     cairo_surface_t *surface = cairo_xcb_surface_create(
         conn, screen->root, visual, screen->width_in_pixels,
@@ -434,7 +440,6 @@ int main(int argc, char *argv[]) {
     global.monitors = monitors;
     global.current_monitor = monitors;
 
-    int bar_height = get_barheight();
     init_cursors();
     init_bar_window(monitors, bar_height);
     init_status_resource(bar_height, bar_height);
