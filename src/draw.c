@@ -1,5 +1,6 @@
 #include <cairo.h>
 #include <math.h>
+#include <pango/pango-font.h>
 #include <pango/pangocairo.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -57,7 +58,7 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
 }
 
 /* public function implementations */
-void init_pango_layout(const char *const *families, size_t len, uint8_t size) {
+void init_pango_layout(const char *const families, uint8_t size) {
     if (barheight)
         return;
 
@@ -68,27 +69,24 @@ void init_pango_layout(const char *const *families, size_t len, uint8_t size) {
     layout = pango_layout_new(context);
     attrs = pango_attr_list_new();
 
-    for (int i = 0; i < len; i++) {
-        PangoFontDescription *desc = pango_font_description_new();
-        pango_font_description_set_family(desc, families[i]);
-        pango_font_description_set_size(desc, size * PANGO_SCALE);
+    PangoFontDescription *desc = pango_font_description_from_string(families);
+    pango_font_description_set_size(desc, size * PANGO_SCALE);
 
-        PangoAttribute *attr = pango_attr_font_desc_new(desc);
-        pango_attr_list_insert(attrs, attr);
+    PangoAttribute *attr = pango_attr_font_desc_new(desc);
+    pango_attr_list_insert(attrs, attr);
 
-        PangoFontMetrics *metrics;
-        metrics = pango_context_get_metrics(context, desc, lang);
+    PangoFontMetrics *metrics;
+    metrics = pango_context_get_metrics(context, desc, lang);
 
-        int height = PANGO_PIXELS(pango_font_metrics_get_height(metrics));
-        int ascent = PANGO_PIXELS(pango_font_metrics_get_ascent(metrics));
-        int descent = PANGO_PIXELS(pango_font_metrics_get_descent(metrics));
+    int height = PANGO_PIXELS(pango_font_metrics_get_height(metrics));
+    int ascent = PANGO_PIXELS(pango_font_metrics_get_ascent(metrics));
+    int descent = PANGO_PIXELS(pango_font_metrics_get_descent(metrics));
 
-        int inner_bh = MIN(height, ascent + descent);
-        barheight = MAX(inner_bh, barheight);
+    int inner_bh = MIN(height, ascent + descent);
+    barheight = MAX(inner_bh, barheight);
 
-        free(desc);
-        free(metrics);
-    }
+    free(desc);
+    free(metrics);
 
     pango_layout_set_attributes(layout, attrs);
 

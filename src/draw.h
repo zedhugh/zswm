@@ -6,7 +6,7 @@
 #ifndef __ZS_WM_DRAW__
 #define __ZS_WM_DRAW__
 
-void init_pango_layout(const char *const *families, size_t len, uint8_t size);
+void init_pango_layout(const char *const families, uint8_t size);
 uint8_t get_barheight();
 int get_text_width(const char *text);
 void draw_text(cairo_t *cr, const char *text, Color scheme[ColLast], int x);

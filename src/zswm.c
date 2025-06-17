@@ -412,7 +412,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    init_pango_layout(fontfamilies, LENGTH(fontfamilies), fontsize);
+    init_pango_layout(fontfamilies, fontsize);
 
     cairo_surface_t *surface = cairo_xcb_surface_create(
         conn, screen->root, visual, screen->width_in_pixels,
