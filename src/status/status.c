@@ -6,7 +6,7 @@
 #include "status.h"
 
 #define INTERVAL 1
-#define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
+#define TIME_FORMAT "%A %m-%d %H:%M:%S"
 
 /*****************************************************************************/
 /*                           file static variables                           */
