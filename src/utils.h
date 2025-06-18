@@ -1,5 +1,6 @@
-#include "types.h"
 #include <string.h>
+
+#include "types.h"
 
 #ifndef __ZS_WM_UTILS__
 #define __ZS_WM_UTILS__

@@ -1,6 +1,8 @@
 #include <cairo.h>
 #include <math.h>
+#include <pango/pango-context.h>
 #include <pango/pango-font.h>
+#include <pango/pango-gravity.h>
 #include <pango/pango-layout.h>
 #include <pango/pangocairo.h>
 #include <stdbool.h>
@@ -70,7 +72,7 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
 }
 
 /* public function implementations */
-uint8_t init_pango_layout(const char *const families, uint8_t size) {
+uint8_t init_pango_layout(const char *const families, uint8_t size, double dpi) {
     if (text_height) {
         return text_height;
     }
@@ -78,6 +80,7 @@ uint8_t init_pango_layout(const char *const families, uint8_t size) {
     PangoFontMap *fontmap = pango_cairo_font_map_new();
     PangoContext *context = pango_font_map_create_context(fontmap);
     PangoLanguage *lang = pango_context_get_language(context);
+    pango_cairo_context_set_resolution(context, dpi);
 
     layout = pango_layout_new(context);
     attrs = pango_attr_list_new();

@@ -20,6 +20,7 @@
 #include "config.h"
 #include "draw.h"
 #include "event.h"
+#include "res.h"
 #include "status.h"
 #include "utils.h"
 #include "window.h"
@@ -418,7 +419,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    bar_height = init_pango_layout(fontfamilies, fontsize) + bar_tbpad * 2;
+    double dpi = dpi_fallback;
+    get_dpi(conn, &dpi);
+
+    bar_height = init_pango_layout(fontfamilies, fontsize, dpi) + bar_tbpad * 2;
 
     cairo_surface_t *surface = cairo_xcb_surface_create(
         conn, screen->root, visual, screen->width_in_pixels,

@@ -12,7 +12,7 @@ add_compile_options(-Wall)
 
 project(${BINARY} VERSION 2.0 LANGUAGES C)
 
-add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c xcursor.c)
+add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c xcursor.c res.c)
 set_property(TARGET ${BINARY} PROPERTY C_STANDARD 17)
 target_include_directories(${BINARY} PRIVATE ${SOURCE_DIR})
 
@@ -21,7 +21,7 @@ target_link_libraries(${BINARY} ${LIB_STATUS_NAME})
 target_include_directories(${BINARY} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/status)
 
 find_package(X11 REQUIRED)
-target_link_libraries(${BINARY} xcb xcb-cursor xcb-icccm xcb-keysyms xcb-util xcb-xfixes xcb-xinerama)
+target_link_libraries(${BINARY} xcb xcb-cursor xcb-icccm xcb-keysyms xcb-util xcb-xfixes xcb-xinerama xcb-xrm)
 
 find_package(PkgConfig REQUIRED)
 
