@@ -46,6 +46,13 @@ static void quit(const Arg *arg) {
 
 static void toggle_mute(const Arg *arg) { toggle_pulse_mute(); }
 static void change_volume(const Arg *arg) { change_pulse_volume(arg->i); }
+static void change_select_tag(const Arg *arg) {
+    unsigned int target_tag = (1 << (arg->ui - 1) & TAGMASK);
+    if (!target_tag || target_tag == global.current_monitor->seltags) {
+        return;
+    }
+    global.current_monitor->seltags = target_tag;
+}
 
 static Key keys[] = {
     {XCB_MOD_MASK_4, XK_p, spawn, {.v = dmenucmd}},
@@ -54,6 +61,17 @@ static Key keys[] = {
     {XCB_MOD_MASK_4 | XCB_MOD_MASK_SHIFT, XK_m, toggle_mute},
     {XCB_MOD_MASK_4, XK_Up, change_volume, {.i = 1}},
     {XCB_MOD_MASK_4, XK_Down, change_volume, {.i = -1}},
+
+    /* change current selected tag of current monitor */
+    {XCB_MOD_MASK_4, XK_1, change_select_tag, {.ui = 1}},
+    {XCB_MOD_MASK_4, XK_2, change_select_tag, {.ui = 2}},
+    {XCB_MOD_MASK_4, XK_3, change_select_tag, {.ui = 3}},
+    {XCB_MOD_MASK_4, XK_4, change_select_tag, {.ui = 4}},
+    {XCB_MOD_MASK_4, XK_5, change_select_tag, {.ui = 5}},
+    {XCB_MOD_MASK_4, XK_6, change_select_tag, {.ui = 6}},
+    {XCB_MOD_MASK_4, XK_7, change_select_tag, {.ui = 7}},
+    {XCB_MOD_MASK_4, XK_8, change_select_tag, {.ui = 8}},
+    {XCB_MOD_MASK_4, XK_9, change_select_tag, {.ui = 9}},
 };
 
 #endif
