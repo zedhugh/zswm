@@ -7,6 +7,8 @@
 
 #define CLIENT_WIDTH(X) ((X)->width + 2 * (X)->bw)
 #define CLIENT_HEIGHT(X) ((X)->height + 2 * (X)->bw)
+#define CLIENT_IS_VISIBLE(C) ((C)->tags & (C)->mon->seltags)
+
 #define LENGTH(X) ((ssize_t)sizeof(X) / (ssize_t)sizeof(X[0]))
 
 /** \brief replace \c NULL strings with empty strings */

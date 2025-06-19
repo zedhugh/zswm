@@ -5,6 +5,7 @@
 #include "global.h"
 #include "status.h"
 #include "utils.h"
+#include "window.h"
 
 #ifndef __ZS_WM_CONFIG__
 #define __ZS_WM_CONFIG__
@@ -55,6 +56,10 @@ static void change_select_tag(const Arg *arg) {
         return;
     }
     global.current_monitor->seltags = target_tag;
+
+    for (Client *c = global.current_monitor->clients; c; c = c->next) {
+        show_and_hide_client(c);
+    }
 }
 
 static const Key keys[] = {

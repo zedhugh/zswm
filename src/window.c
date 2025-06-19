@@ -103,6 +103,7 @@ void configure_client(Client *client) {
         .border_width = border_px,
     };
     xcb_aux_configure_window(conn, client->win, config_mask, &window_config);
+    xcb_flush(conn);
 }
 
 void update_client_name(Client *client) {
@@ -185,4 +186,22 @@ void unmanage_client(Client *client, bool destroyed) {
         xcb_aux_configure_window(conn, window, config_mask, &window_config);
     }
     free(client);
+}
+
+void show_and_hide_client(Client *client) {
+    if (!client) {
+        return;
+    }
+
+    xcb_connection_t *conn = global.conn;
+    xcb_config_window_t config_mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+    xcb_params_configure_window_t window_config;
+    if (CLIENT_IS_VISIBLE(client)) {
+        window_config.x = client->x;
+        window_config.y = client->y;
+    } else {
+        window_config.x = client->mon->mx;
+        window_config.y = client->mon->mx + client->mon->mh;
+    }
+    xcb_aux_configure_window(conn, client->win, config_mask, &window_config);
 }
