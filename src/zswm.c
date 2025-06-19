@@ -310,12 +310,10 @@ void scan() {
     int len = xcb_query_tree_children_length(reply);
     for (int i = 0; i < len; i++) {
         xcb_window_t window = windows[i];
-        xcb_get_window_attributes_reply_t *wa = get_window_attributes(window);
+        xcb_get_window_attributes_reply_t wa = get_window_attributes(window);
 
-        uint8_t override_redirect = wa->override_redirect;
-        uint8_t map_state = wa->map_state;
-
-        free(wa);
+        uint8_t override_redirect = wa.override_redirect;
+        uint8_t map_state = wa.map_state;
 
         if (override_redirect || map_state != XCB_MAP_STATE_VIEWABLE) {
             continue;

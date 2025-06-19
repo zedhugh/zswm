@@ -21,18 +21,29 @@ static void create_notify(xcb_create_notify_event_t *ev) {
 static void map_request(xcb_map_request_event_t *ev) {
     logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent,
            global.screen->root);
-    xcb_map_window(global.conn, ev->window);
-    xcb_map_subwindows(global.conn, ev->window);
-    if (ev->parent == global.screen->root) {
-        manage_window(ev->window);
+    if (get_client_of_window(ev->window)) {
+        return;
     }
 
-    xcb_flush(global.conn);
+    if (ev->parent == global.screen->root) {
+        manage_window(ev->window);
+        xcb_flush(global.conn);
+    }
 }
 
 static void map_notify(xcb_map_notify_event_t *ev) {
     need_refresh_bar = true;
     logger("window: %d, root: %d\n", ev->window, global.screen->root);
+}
+
+static void unmap_notify(xcb_unmap_notify_event_t *ev) {
+    need_refresh_bar = true;
+    logger("unmap window: %d\n", ev->window);
+
+    Client *c = get_client_of_window(ev->window);
+    if (c != NULL) {
+        unmanage_client(c, false);
+    }
 }
 
 static void configure_request(xcb_configure_request_event_t *ev) {
@@ -102,6 +113,10 @@ static void client_message(xcb_client_message_event_t *ev) {
 }
 
 static void destory_notify(xcb_destroy_notify_event_t *ev) {
+    Client *c = get_client_of_window(ev->window);
+    if (c != NULL) {
+        unmanage_client(c, true);
+    }
     need_refresh_bar = true;
 }
 
@@ -180,6 +195,8 @@ bool event_handle(xcb_generic_event_t *event) {
         EVENT(XCB_FOCUS_IN, focus_in);
         EVENT(XCB_FOCUS_OUT, focus_out);
         EVENT(XCB_PROPERTY_NOTIFY, property_notify);
+        EVENT(XCB_UNMAP_NOTIFY, unmap_notify);
+
 #undef EVENT
     }
 

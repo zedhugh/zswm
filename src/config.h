@@ -1,4 +1,5 @@
 #include <X11/keysym.h>
+#include <stdint.h>
 #include <xcb/xproto.h>
 
 #include "global.h"
@@ -17,6 +18,8 @@ static char *tags[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
 static const int tag_lrpad = 10;   /* left and right padding of tag */
 static const int status_lrpad = 6; /* left and right padding of status */
 static const int bar_tbpad = 3;    /* top and bottom padding of bar */
+
+static const uint8_t border_px = 1; /* border pixel of window */
 
 #define TAGMASK ((1 << LENGTH(tags)) - 1)
 
@@ -54,7 +57,7 @@ static void change_select_tag(const Arg *arg) {
     global.current_monitor->seltags = target_tag;
 }
 
-static Key keys[] = {
+static const Key keys[] = {
     {XCB_MOD_MASK_4, XK_p, spawn, {.v = dmenucmd}},
     {XCB_MOD_MASK_4, XK_q, quit, {.v = NULL}},
     {XCB_MOD_MASK_4, XK_r, quit, {.i = 1}},

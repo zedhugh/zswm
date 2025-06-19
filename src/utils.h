@@ -5,6 +5,8 @@
 #ifndef __ZS_WM_UTILS__
 #define __ZS_WM_UTILS__
 
+#define CLIENT_WIDTH(X) ((X)->width + 2 * (X)->bw)
+#define CLIENT_HEIGHT(X) ((X)->height + 2 * (X)->bw)
 #define LENGTH(X) ((ssize_t)sizeof(X) / (ssize_t)sizeof(X[0]))
 
 /** \brief replace \c NULL strings with empty strings */

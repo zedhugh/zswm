@@ -30,8 +30,8 @@ typedef struct Client Client;
 struct Client {
     char name[256];
     int x, y, width, height;
-    int oldx, oldy, old_width, old_height;
-    int bw, oldbw; /* border width */
+    int old_x, old_y, old_width, old_height;
+    int bw, old_bw; /* border width */
     unsigned int tags;
     bool isfullscreen;
     xcb_window_t win;
@@ -48,6 +48,7 @@ struct Monitor {
     int16_t wx, wy;
     uint16_t ww, wh;
 
+    /* selected tags */
     uint16_t seltags;
 
     xcb_window_t barwin;
@@ -55,6 +56,8 @@ struct Monitor {
     cairo_t *cr;
 
     Monitor *next;
+    Client *clients;
+    Client *selected_client;
 };
 
 /* cursor for window manager */
