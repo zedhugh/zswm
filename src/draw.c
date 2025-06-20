@@ -19,7 +19,6 @@ typedef struct {
 } Size;
 
 /* static function declarations */
-static Size get_layout_size();
 static PangoRectangle get_layout_rect();
 static PangoAttribute *create_pango_fg_attr(PangoColor color);
 static void set_cairo_color(cairo_t *cr, PangoColor color);
@@ -30,12 +29,6 @@ static PangoAttrList *attrs;
 static uint8_t text_height = 0;
 
 /* static function implementations */
-Size get_layout_size() {
-    Size size;
-    pango_layout_get_pixel_size(layout, &size.width, &size.height);
-    return size;
-}
-
 PangoRectangle get_layout_rect() {
     PangoRectangle rect;
 
@@ -72,7 +65,8 @@ void set_cairo_color(cairo_t *cr, PangoColor color) {
 }
 
 /* public function implementations */
-uint8_t init_pango_layout(const char *const families, uint8_t size, double dpi) {
+uint8_t init_pango_layout(const char *const families, uint8_t size,
+                          double dpi) {
     if (text_height) {
         return text_height;
     }
