@@ -47,10 +47,8 @@ static void unmap_notify(xcb_unmap_notify_event_t *ev) {
 }
 
 static void configure_request(xcb_configure_request_event_t *ev) {
-    logger("window: %d, parent: %d, root: %d\n", ev->window, ev->parent,
-           global.screen->root);
-    logger("x: %d, y: %d, width: %d, height: %d\n", ev->x, ev->y, ev->width,
-           ev->height);
+    logger("=================== Configure Request ===================\n");
+
 
     xcb_cw_t mask = XCB_CW_BORDER_PIXEL;
     xcb_params_cw_t params = {
@@ -75,6 +73,10 @@ static void configure_request(xcb_configure_request_event_t *ev) {
                              &window_config);
 
     xcb_flush(global.conn);
+}
+
+static void configure_notify(xcb_configure_notify_event_t *ev) {
+    logger("=================== Configure Notify ===================\n");
 }
 
 static void keypress(xcb_key_press_event_t *ev) {
@@ -192,6 +194,7 @@ bool event_handle(xcb_generic_event_t *event) {
         EVENT(XCB_MAP_REQUEST, map_request);
         EVENT(XCB_MAP_NOTIFY, map_notify);
         EVENT(XCB_CONFIGURE_REQUEST, configure_request);
+        EVENT(XCB_CONFIGURE_NOTIFY, configure_notify);
         EVENT(XCB_DESTROY_NOTIFY, destory_notify);
         EVENT(XCB_CLIENT_MESSAGE, client_message);
         EVENT(XCB_KEY_PRESS, keypress);
