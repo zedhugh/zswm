@@ -150,11 +150,11 @@ void manage_window(xcb_window_t window) {
         c->tags = global.current_monitor->seltags;
     }
 
+    c->bw = border_px;
     c->x = c->mon->wx;
     c->y = c->mon->wy;
-    c->width = c->mon->ww;
-    c->height = c->mon->wh;
-    c->bw = border_px;
+    c->width = c->mon->ww - 2 * c->bw;
+    c->height = c->mon->wh - 2 * c->bw;
 
     update_client_name(c);
     configure_client(c);

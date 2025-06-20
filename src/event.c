@@ -62,7 +62,7 @@ static void configure_request(xcb_configure_request_event_t *ev) {
         XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
         XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH |
         XCB_CONFIG_WINDOW_STACK_MODE;
-    int border = 1;
+    int border = ev->border_width;
     xcb_params_configure_window_t window_config = {
         .x = global.current_monitor->wx,
         .y = global.current_monitor->wy,
