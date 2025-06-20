@@ -368,29 +368,6 @@ void init_xcb_event() {
 }
 
 void show_status(Status status) {
-    Pulse pulse = status.pulse;
-    logger("=========================== status ===========================\n");
-    logger("== pulse device: %s\n", pulse.device);
-    logger("== pulse avg volume: %d\n", pulse.avg_volume);
-    logger("== pulse muted: %d\n", pulse.mute);
-    for (int i = 0; i < LENGTH(pulse.volumes) && pulse.volumes[i] != -1; ++i) {
-        logger("== pulse volume[%d]: %d%%\n", i, pulse.volumes[i]);
-    }
-
-    NetSpeed speed = status.net_speed;
-    logger("== down: %s, up: %s\n", speed.down, speed.up);
-    logger("== rx bytes: %lu, tx bytes: %lu\n", speed.rx_bytes, speed.tx_bytes);
-
-    MemUsage usage = status.mem_usage;
-    logger("== mem: %s, percent: %.1f%%\n", usage.mem_used_text,
-           usage.mem_percent);
-    logger("== swap: %s, percent: %.1f%%\n", usage.swap_used_text,
-           usage.swap_percent);
-
-    logger("== cpu: %.0lf\n", status.cpu_usage_percent);
-    logger("== time: %s\n", status.time);
-    logger("========================= status end =========================\n");
-
     global.status = status;
     update_monitor_bar(global.monitors);
 }
