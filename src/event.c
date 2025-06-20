@@ -101,10 +101,18 @@ static void button_press(xcb_button_press_event_t *ev) {
             x += get_text_width(tags[i]) + tag_lrpad * 2;
         } while (ev->event_x >= x && (++i) < LENGTH(tags));
 
-        if (i < LENGTH(tags)) {
-            global.current_monitor->seltags = 1 << i;
-            need_refresh_bar = true;
+        if (i >= LENGTH(tags)) {
+            return;
         }
+        uint16_t target_tag = 1 << i;
+        if (global.current_monitor->seltags & target_tag) {
+            return;
+        }
+
+        Arg arg = {.ui = i + 1};
+        change_select_tag(&arg);
+        logger("=== jump to tag: %u\n", i + 1);
+        need_refresh_bar = true;
     }
 }
 
