@@ -4,9 +4,6 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <xcb/xcb.h>
-#include <xcb/xcb_aux.h>
-#include <xcb/xcb_icccm.h>
 
 #include "utils.h"
 
@@ -53,11 +50,11 @@ void *ecalloc(size_t nmemb, size_t size) {
     return p;
 }
 
-void spawn(const Arg *arg) {
+void run_shell_cmd(char **cmd) {
     if (fork() == 0) {
         setsid();
-        execvp(((char **)arg->v)[0], arg->v);
-        die("zswm execvp '%s' failed:", ((char **)arg->v)[0]);
+        execvp(cmd[0], cmd);
+        die("zswm execvp: '%s' failed", cmd);
     }
 }
 
@@ -106,30 +103,4 @@ Monitor *xy_to_monitor(Monitor *monitors, int x, int y) {
     }
 
     return monitors;
-}
-
-/**
- * set wm class use xcb api,
- * reference https://github.com/awesomeWM/awesome/blob/master/xwindow.h.
- * It's equal to X11 api below:
- * XClassHint ch = { "zswm", "zswm" };
- * XSetClassHint(dpy, win, &ch);
- */
-void set_window_class_instance(xcb_connection_t *conn, xcb_window_t window,
-                               const char *class, const char *instance) {
-    size_t class_length = strlen(class) + 1;
-    size_t instance_length = strlen(instance) + 1;
-    size_t length = class_length + instance_length;
-
-    char *str = malloc(length * sizeof(char));
-    for (size_t i = 0; i < length; i++) {
-        if (i < class_length) {
-            str[i] = class[i];
-        } else {
-            str[i] = instance[i - class_length];
-        }
-    }
-
-    xcb_icccm_set_wm_class(conn, window, length, str);
-    free(str);
 }

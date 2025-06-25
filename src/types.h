@@ -13,6 +13,7 @@
 #define __ZS_WM_TYPES__
 
 typedef union {
+    bool b;
     int i;
     unsigned int ui;
     float f;
@@ -103,5 +104,7 @@ typedef struct {
     void (*func)(const Arg *);
     const Arg arg;
 } Key;
+
+extern zswm_global_t global;
 
 #endif
