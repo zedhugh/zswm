@@ -12,7 +12,7 @@ add_compile_options(-Wall)
 
 project(${BINARY} VERSION 2.0 LANGUAGES C)
 
-add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c xcursor.c res.c user-action.c)
+add_executable(${BINARY} zswm.c utils.c draw.c event.c window.c xcursor.c res.c user-action.c layout.c)
 set_property(TARGET ${BINARY} PROPERTY C_STANDARD 17)
 target_include_directories(${BINARY} PRIVATE ${SOURCE_DIR})
 

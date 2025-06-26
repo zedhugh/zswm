@@ -49,7 +49,6 @@ static void unmap_notify(xcb_unmap_notify_event_t *ev) {
 static void configure_request(xcb_configure_request_event_t *ev) {
     logger("=================== Configure Request ===================\n");
 
-
     xcb_cw_t mask = XCB_CW_BORDER_PIXEL;
     xcb_params_cw_t params = {
         .border_pixel = global.color[SchemeSel][ColBorder].xcb_color_pixel,
@@ -104,6 +103,13 @@ static void button_press(xcb_button_press_event_t *ev) {
         } while (ev->event_x >= x && (++i) < LENGTH(tags));
 
         if (i >= LENGTH(tags)) {
+            int w = get_text_width(global.current_monitor->layout->symbol);
+            x += w + 2 * tag_lrpad;
+            if (x >= ev->event_x) {
+                Arg arg = {.b = ev->detail == XCB_BUTTON_INDEX_1};
+                change_layout(&arg);
+                need_refresh_bar = true;
+            }
             return;
         }
         uint16_t target_tag = 1 << i;

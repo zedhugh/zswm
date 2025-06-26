@@ -1,6 +1,7 @@
 #include <X11/keysym.h>
 #include <stdbool.h>
 
+#include "layout.h"
 #include "user-action.h"
 
 #ifndef __ZS_WM_CONFIG__
@@ -29,6 +30,9 @@ static const char *const colors[SchemeLast][ColLast] = {
     [SchemeNorm] = {col_gray3, col_gray1, col_gray2},
     [SchemeSel] = {col_gray4, col_cyan, col_cyan},
 };
+
+static Layout const layouts[] = {
+    {"[]=", tile}, {"[M]", monocle}, {"><>", NULL}};
 
 static const char dmenufont[] = "Terminus:size=10";
 static const char dmenumon[2] = "0";

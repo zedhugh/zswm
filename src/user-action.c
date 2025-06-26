@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "config.h"
 #include "user-action.h"
@@ -27,7 +28,22 @@ void change_select_tag(const Arg *arg) {
     }
 }
 
-void change_layout(const Arg *arg);
+void change_layout(const Arg *arg) {
+    bool forward = arg && arg->b;
+    uint32_t index = 0;
+    for (; index < LENGTH(layouts); index++) {
+        const char *ltsymbol = global.current_monitor->layout->symbol;
+        if (strcmp(ltsymbol, layouts[index].symbol) == 0) {
+            break;
+        }
+    }
+    index = (LENGTH(layouts) + index + (forward ? 1 : -1)) % LENGTH(layouts);
+    global.current_monitor->layout = &layouts[index];
+    if (global.current_monitor->layout->arrange) {
+        global.current_monitor->layout->arrange(global.current_monitor);
+    }
+}
+
 void change_current_monitor(const Arg *arg);
 
 void kill_client(const Arg *arg);

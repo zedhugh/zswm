@@ -38,4 +38,6 @@ xcb_visualtype_t *find_visual(xcb_screen_t *screen, xcb_visualid_t visualid);
 
 Monitor *xy_to_monitor(Monitor *monitors, int x, int y);
 
+Client *next_show_client(Client *client);
+
 #endif

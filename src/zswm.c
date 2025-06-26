@@ -91,6 +91,7 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
         Monitor *m = ecalloc(1, sizeof(Monitor));
         copy_screen_info(m, &screen_info[i]);
         m->seltags = 1;
+        m->layout = &layouts[0];
 
         if (!i) {
             monitors = m;
@@ -105,16 +106,21 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
 
 void draw_tags(Monitor *monitor, Color scheme[SchemeLast][ColLast]) {
     int x = 0, width = 0;
-    Color *color;
+    Color *normal = scheme[SchemeNorm];
+    Color *select = scheme[SchemeSel];
 
     for (int i = 0; i < LENGTH(tags); i++) {
         uint16_t sel = (monitor->seltags >> i) & 1;
-        color = scheme[sel ? SchemeSel : SchemeNorm];
+        Color *color = sel ? select : normal;
         const char *tag = tags[i];
         width = get_text_width(tag) + tag_lrpad * 2;
         draw_text(monitor->cr, tag, color, x, 0, width, bar_height, false);
         x += width;
     }
+
+    const char *ltsymbol = monitor->layout->symbol;
+    width = get_text_width(ltsymbol) + tag_lrpad * 2;
+    draw_text(monitor->cr, ltsymbol, normal, x, 0, width, bar_height, false);
 }
 
 void draw_status(Monitor *monitor, Status status, Color *color) {

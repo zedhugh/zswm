@@ -1,8 +1,10 @@
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xproto.h>
 
@@ -65,6 +67,22 @@ Client *get_client_of_window(xcb_window_t window) {
     return NULL;
 }
 
+void change_window_rect(xcb_window_t window, int32_t x, int32_t y,
+                        uint32_t width, uint32_t height,
+                        uint32_t border_width) {
+    xcb_connection_t *conn = global.conn;
+    xcb_config_window_t mask =
+        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
+        XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    xcb_params_configure_window_t config = {.x = x,
+                                            .y = y,
+                                            .width = width,
+                                            .height = height,
+                                            .border_width = border_width};
+    xcb_aux_configure_window(conn, window, mask, &config);
+    xcb_flush(conn);
+}
+
 void change_window_border_color(xcb_window_t window, uint32_t color_pixel) {
     xcb_connection_t *c = global.conn;
     uint32_t mask = XCB_CW_BORDER_PIXEL;
@@ -104,7 +122,7 @@ xcb_window_t get_transient_window_for(xcb_window_t window) {
     return transient_for;
 }
 
-void configure_client(Client *client) {
+void configure_client(xcb_window_t window) {
     xcb_connection_t *conn = global.conn;
     xcb_cw_t change_mask = XCB_CW_EVENT_MASK | XCB_CW_BORDER_PIXEL;
     xcb_params_cw_t params = {
@@ -115,20 +133,7 @@ void configure_client(Client *client) {
         .border_pixel = global.color[SchemeNorm][ColBorder].xcb_color_pixel,
     };
 
-    xcb_aux_change_window_attributes(conn, client->win, change_mask, &params);
-
-    xcb_config_window_t config_mask =
-        XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH |
-        XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-    xcb_params_configure_window_t window_config = {
-        .x = client->x,
-        .y = client->y,
-        .width = client->width,
-        .height = client->height,
-        .border_width = border_px,
-    };
-    xcb_aux_configure_window(conn, client->win, config_mask, &window_config);
-    xcb_flush(conn);
+    xcb_aux_change_window_attributes(conn, window, change_mask, &params);
 }
 
 void update_client_name(Client *client) {
@@ -163,7 +168,8 @@ void manage_window(xcb_window_t window) {
     c->y = c->old_y = geometry.y;
     c->width = c->old_width = geometry.width;
     c->height = c->old_height = geometry.height;
-    c->bw = c->old_bw = geometry.border_width;
+    c->old_bw = geometry.border_width;
+    c->bw = border_px;
 
     xcb_window_t trans_for = get_transient_window_for(window);
     Client *t = NULL;
@@ -175,15 +181,10 @@ void manage_window(xcb_window_t window) {
         c->tags = global.current_monitor->seltags;
     }
 
-    c->bw = border_px;
-    c->x = c->mon->wx;
-    c->y = c->mon->wy;
-    c->width = c->mon->ww - 2 * c->bw;
-    c->height = c->mon->wh - 2 * c->bw;
-
     update_client_name(c);
-    configure_client(c);
     attach_client(c);
+
+    configure_client(window);
 
     show_clients(global.monitors);
 
@@ -192,10 +193,15 @@ void manage_window(xcb_window_t window) {
     xcb_map_window(conn, window);
     xcb_map_subwindows(conn, window);
 
+    if (c->mon && c->mon->layout && c->mon->layout->arrange) {
+        c->mon->layout->arrange(c->mon);
+    }
+
     xcb_flush(conn);
 }
 
 void unmanage_client(Client *client, bool destroyed) {
+    Monitor *m = client->mon;
     detach_client(client);
     show_clients(global.monitors);
     if (!destroyed) {
@@ -211,6 +217,10 @@ void unmanage_client(Client *client, bool destroyed) {
         xcb_aux_configure_window(conn, window, config_mask, &window_config);
     }
     free(client);
+
+    if (m && m->layout && m->layout->arrange) {
+        m->layout->arrange(m);
+    }
 }
 
 void show_and_hide_client(Client *client) {

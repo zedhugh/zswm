@@ -40,6 +40,11 @@ struct Client {
     Monitor *mon;
 };
 
+typedef struct {
+    const char *symbol;
+    void (*arrange)(Monitor *monitor);
+} Layout;
+
 struct Monitor {
     /* monitor rectangle */
     int16_t mx, my;
@@ -59,6 +64,7 @@ struct Monitor {
     Monitor *next;
     Client *clients;
     Client *selected_client;
+    const Layout *layout;
 };
 
 /* cursor for window manager */

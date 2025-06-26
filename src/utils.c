@@ -104,3 +104,10 @@ Monitor *xy_to_monitor(Monitor *monitors, int x, int y) {
 
     return monitors;
 }
+
+Client *next_show_client(Client *client) {
+    for (; client && !CLIENT_IS_VISIBLE(client); client = client->next) {
+    }
+
+    return client;
+}
