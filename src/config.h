@@ -34,6 +34,18 @@ static const char *const colors[SchemeLast][ColLast] = {
 static Layout const layouts[] = {
     {"[]=", tile}, {"[M]", monocle}, {"><>", NULL}};
 
+static Rule const rules[] = {
+    {.class = "firefox", .tags = 1 << 2, .monitor = -1, .maximize = true},
+    {.class = "Emacs", .tags = 1 << 1, .monitor = -1, .maximize = true},
+    {
+        .class = "mpv",
+        .tags = 1 << 3,
+        .monitor = -1,
+        .switch_to_tag = true,
+        .fullscreen = true,
+    },
+};
+
 static const char dmenufont[] = "Terminus:size=10";
 static const char dmenumon[2] = "0";
 static const char *dmenucmd[] = {

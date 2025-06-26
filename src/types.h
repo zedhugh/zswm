@@ -45,7 +45,21 @@ typedef struct {
     void (*arrange)(Monitor *monitor);
 } Layout;
 
+typedef struct {
+    const char *class;
+    const char *instance;
+
+    unsigned int tags;
+    int monitor;
+
+    bool switch_to_tag;
+    bool fullscreen;
+    bool maximize;
+    bool floating;
+} Rule;
+
 struct Monitor {
+    int num;
     /* monitor rectangle */
     int16_t mx, my;
     uint16_t mw, mh;

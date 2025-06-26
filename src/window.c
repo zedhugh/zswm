@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
@@ -49,6 +50,14 @@ void set_window_class_instance(xcb_connection_t *conn, xcb_window_t window,
 
     xcb_icccm_set_wm_class(conn, window, length, str);
     free(str);
+}
+
+xcb_icccm_get_wm_class_reply_t get_window_class_instance(xcb_connection_t *conn,
+                                                         xcb_window_t window) {
+    xcb_get_property_cookie_t cookie = xcb_icccm_get_wm_class(conn, window);
+    xcb_icccm_get_wm_class_reply_t prop;
+    xcb_icccm_get_wm_class_reply(conn, cookie, &prop, NULL);
+    return prop;
 }
 
 /**
@@ -159,6 +168,38 @@ void detach_client(Client *client) {
     *c = client->next;
 }
 
+void apply_rules(Client *client) {
+    client->tags = global.current_monitor->seltags;
+    xcb_connection_t *conn = global.conn;
+    xcb_icccm_get_wm_class_reply_t prop =
+        get_window_class_instance(conn, client->win);
+
+    client->tags = 0;
+    client->isfullscreen = false;
+
+    const Rule *r = NULL;
+    for (int i = 0; i < LENGTH(rules); i++) {
+        r = &rules[i];
+        if ((!r->class || strcmp(prop.class_name, r->class) == 0) &&
+            (!r->instance || strcmp(prop.instance_name, r->instance) == 0)) {
+
+            client->tags |= r->tags;
+            client->isfullscreen = r->fullscreen;
+            Monitor *m = NULL;
+            for (m = global.monitors; m && m->num == r->monitor; m = m->next) {
+            }
+            if (m) {
+                client->mon = m;
+            }
+            if (r->switch_to_tag) {
+                client->mon->seltags = r->tags;
+            }
+        }
+    }
+    unsigned int target_tag = client->tags & TAGMASK;
+    client->tags = target_tag ? target_tag : client->mon->seltags;
+}
+
 void manage_window(xcb_window_t window) {
     Client *c = ecalloc(1, sizeof(Client));
     c->win = window;
@@ -170,6 +211,7 @@ void manage_window(xcb_window_t window) {
     c->height = c->old_height = geometry.height;
     c->old_bw = geometry.border_width;
     c->bw = border_px;
+    update_client_name(c);
 
     xcb_window_t trans_for = get_transient_window_for(window);
     Client *t = NULL;
@@ -178,12 +220,14 @@ void manage_window(xcb_window_t window) {
         c->tags = t->tags;
     } else {
         c->mon = global.current_monitor;
-        c->tags = global.current_monitor->seltags;
+        apply_rules(c);
     }
 
-    update_client_name(c);
     attach_client(c);
 
+    if (c->mon && c->mon->layout && c->mon->layout->arrange) {
+        c->mon->layout->arrange(c->mon);
+    }
     configure_client(window);
 
     show_clients(global.monitors);
@@ -192,10 +236,7 @@ void manage_window(xcb_window_t window) {
 
     xcb_map_window(conn, window);
     xcb_map_subwindows(conn, window);
-
-    if (c->mon && c->mon->layout && c->mon->layout->arrange) {
-        c->mon->layout->arrange(c->mon);
-    }
+    show_and_hide_client(c);
 
     xcb_flush(conn);
 }

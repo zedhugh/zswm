@@ -92,6 +92,7 @@ Monitor *monitor_scan(xcb_connection_t *conn) {
         copy_screen_info(m, &screen_info[i]);
         m->seltags = 1;
         m->layout = &layouts[0];
+        m->num = i;
 
         if (!i) {
             monitors = m;

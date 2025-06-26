@@ -28,6 +28,7 @@ static void map_request(xcb_map_request_event_t *ev) {
     if (ev->parent == global.screen->root) {
         manage_window(ev->window);
         xcb_flush(global.conn);
+        need_refresh_bar = true;
     }
 }
 
